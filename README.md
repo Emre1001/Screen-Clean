@@ -6,7 +6,7 @@ Screen-Clean ist eine ultra-flüssige, minimalistische und moderne Windows-App f
 
 ![Status](https://img.shields.io/badge/Status-Ultra--Premium-blueviolet?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.1.0-orange?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.0-orange?style=for-the-badge)
 
 ---
 
