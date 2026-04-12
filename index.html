@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen-Clean</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+    <div id="drag-region">
+        <div class="window-title">Screen-Clean</div>
+        <div class="window-controls">
+            <div class="control-btn minimize" id="min-btn"></div>
+            <div class="control-btn maximize" id="max-btn"></div>
+            <div class="control-btn close" id="close-btn"></div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="app-container">
+        
+        <div id="dashboard" class="page active">
+            <div class="logo-container">
+                <img src="icon.png" alt="Logo" class="app-logo">
+                <h1 class="logo">SCREEN-CLEAN</h1>
+            </div>
+            
+            <div class="card-container">
+                <!-- Host Card -->
+                <div class="glass-card">
+                    <div class="card-icon host-icon">🖥️</div>
+                    <h2>Hosten</h2>
+                    <p>Bildschirm freigeben</p>
+                    <div class="code-display">
+                        <span id="host-code">Loading...</span>
+                        <div class="copy-btn tooltip" onclick="copyCode()">📋<span class="tooltiptext">Kopieren</span></div>
+                    </div>
+                    <label class="toggle-control">
+                        <input type="checkbox" id="allow-control" checked>
+                        <span class="control-indicator"></span>
+                        <span class="control-label">Fernsteuerung erlauben</span>
+                    </label>
+                    <button class="primary-btn" id="start-host-btn" style="display:none;">Bereit</button>
+                    <div class="status-message">Teile den Code um loszulegen</div>
+                </div>
+
+                <!-- Connect Card -->
+                <div class="glass-card">
+                    <div class="card-icon join-icon">🔗</div>
+                    <h2>Beitreten</h2>
+                    <p>Verbinde zu einem PC</p>
+                    <div class="code-input-group">
+                        <input type="text" id="join-code" placeholder="12-stelliger Code" maxlength="14" spellcheck="false">
+                    </div>
+                    <button class="primary-btn pulse-glow" id="join-btn">Verbinden</button>
+                    <div id="join-status" class="status-message">Bereit</div>
+                </div>
+            </div>
+            
+            <div class="settings-trigger" id="open-settings">⚙️ Einstellungen</div>
+        </div>
+
+        <!-- Video View -->
+        <div id="video-view" class="page">
+            <video id="remote-video" autoplay playsinline></video>
+            <div class="video-overlay">
+                <button class="danger-btn" id="disconnect-btn">Trennen</button>
+                <button class="primary-btn" id="fullscreen-btn" style="width: auto; padding: 12px 20px;">⛶ Fullscreen</button>
+                <div class="indicator green" id="connection-indicator">Verbunden</div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal">
+            <div class="modal-content glass-card" style="max-height: 85vh; overflow-y: auto;">
+                <h2>Einstellungen</h2>
+                
+                <div class="setting-group">
+                    <label>Audio Übertragen</label>
+                    <label class="toggle-control">
+                        <input type="checkbox" id="setting-audio" checked>
+                        <span class="control-indicator"></span>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label>Performance Modus</label>
+                    <div class="custom-select" id="perf-mode-select" data-value="full-auto">
+                        <div class="select-trigger"><span>Voll Automatik</span> <div class="arrow"></div></div>
+                        <div class="select-options">
+                            <div class="option" data-value="full-auto">Voll Automatik</div>
+                            <div class="option" data-value="dynamic">Automatik (Slider)</div>
+                            <div class="option" data-value="manual">Manuell</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Slider -->
+                <div id="dynamic-settings" style="display: none; flex-direction: column; width: 100%; border-bottom: 1px solid var(--border-card); padding-bottom: 15px; margin-bottom: 10px;">
+                    <label style="width:100%; color: var(--text-dim); margin-bottom: 8px;">Priorität bei schlechtem Internet:</label>
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; color: var(--text-dim);">
+                        <span>Qualität behalten</span>
+                        <span>FPS behalten</span>
+                    </div>
+                    <input type="range" id="dynamic-slider" min="1" max="10" value="5" style="width:100%; margin-top:10px; margin-bottom: 10px;">
+                </div>
+
+                <!-- Manual Settings -->
+                <div id="manual-settings" style="display: none; flex-direction: column; width: 100%; border-bottom: 1px solid var(--border-card); padding-bottom: 15px; margin-bottom: 10px;">
+                    <label class="manual-label">Max. Auflösung</label>
+                    <div class="custom-select" id="manual-res" data-value="0">
+                        <div class="select-trigger"><span>Nativ (Monitor Auflösung)</span> <div class="arrow"></div></div>
+                        <div class="select-options">
+                            <div class="option" data-value="0">Nativ (Monitor Auflösung)</div>
+                            <div class="option" data-value="2160">4K (2160p)</div>
+                            <div class="option" data-value="1440">QHD (1440p)</div>
+                            <div class="option" data-value="1080">FHD (1080p)</div>
+                            <div class="option" data-value="720">HD (720p)</div>
+                        </div>
+                    </div>
+                    
+                    <label class="manual-label">Max. FPS</label>
+                    <div class="custom-select" id="manual-fps" data-value="60">
+                        <div class="select-trigger"><span>60 FPS</span> <div class="arrow"></div></div>
+                        <div class="select-options">
+                            <div class="option" data-value="120">120 FPS</div>
+                            <div class="option" data-value="60">60 FPS</div>
+                            <div class="option" data-value="30">30 FPS</div>
+                            <div class="option" data-value="15">15 FPS</div>
+                        </div>
+                    </div>
+
+                    <label class="manual-label">Max. Bandbreite (Bitrate)</label>
+                    <div class="custom-select" id="manual-bitrate" data-value="0">
+                        <div class="select-trigger"><span>Unlimitiert</span> <div class="arrow"></div></div>
+                        <div class="select-options">
+                            <div class="option" data-value="0">Unlimitiert</div>
+                            <div class="option" data-value="50000">50 Mbps (Extrem Hoch)</div>
+                            <div class="option" data-value="15000">15 Mbps (Hoch)</div>
+                            <div class="option" data-value="5000">5 Mbps (Mittel)</div>
+                            <div class="option" data-value="1000">1 Mbps (Niedrig)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="primary-btn" id="close-settings" style="margin-top:20px;">Schließen</button>
+            </div>
+        </div>
+        
+        <!-- Host Request Confirm Modal -->
+        <div id="confirm-modal" class="modal">
+            <div class="modal-content glass-card confirm-dialog">
+                <h2>Verbindungsanfrage!</h2>
+                <p>Ein Gerät bittet um Zugriff auf diesen PC.</p>
+                <div class="action-buttons">
+                    <button class="danger-btn" id="reject-btn">Ablehnen</button>
+                    <button class="primary-btn" id="accept-btn">Zulassen</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

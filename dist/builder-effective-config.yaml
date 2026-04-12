@@ -1,0 +1,9 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.screen.clean
+productName: Screen-Clean
+win:
+  target: portable
+files: []
+electronVersion: 41.2.0

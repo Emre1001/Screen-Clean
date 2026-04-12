@@ -1,0 +1,30 @@
+{
+  "name": "screen-clean",
+  "version": "1.1.0",
+  "description": "Peer-to-Peer Screen Sharing & Remote Control App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder build --win"
+  },
+  "build": {
+    "appId": "com.screen.clean",
+    "productName": "Screen-Clean",
+    "win": {
+      "target": "portable"
+    },
+    "directories": {
+      "output": "dist"
+    }
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "peerjs": "^1.5.5",
+    "robotjs": "^0.6.0"
+  },
+  "devDependencies": {
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1"
+  }
+}
