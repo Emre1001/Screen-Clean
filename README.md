@@ -36,30 +36,6 @@ Um die Bedienung so schnell wie möglich zu machen, unterstützt Screen-Clean gl
 
 ---
 
-## 🚀 Installation & Start
-
-### Voraussetzungen
-Stelle sicher, dass du [Node.js](https://nodejs.org/) installiert hast.
-
-### Setup
-1. Repository klonen oder ZIP herunterladen.
-2. Navigiere in das Verzeichnis:
-   ```bash
-   cd Screen-Clean
-   ```
-3. Installiere die Abhängigkeiten:
-   ```bash
-   npm install
-   ```
-
-### Starten
-Starte die App mit:
-```bash
-npm start
-```
-
----
-
 ## 🛠️ Technik-Stack
 
 - **Frontend**: HTML5, Vanilla CSS3 (Custom Design System), JavaScript.
@@ -83,4 +59,4 @@ Feedback und Pull Requests sind jederzeit willkommen!
 
 ---
 
-**Entwickelt für maximale Performance. Rein, schnell, Screen-Clean.**
+**Entwickelt für maximale Performance. Rein, schnell, OpenSource, Screen-Clean.**
