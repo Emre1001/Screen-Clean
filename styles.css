@@ -185,6 +185,12 @@ body {
     cursor: pointer;
     position: relative;
     user-select: none;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.copy-btn:hover {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 5px var(--primary));
 }
 
 .tooltip .tooltiptext {

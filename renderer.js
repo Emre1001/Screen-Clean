@@ -97,8 +97,19 @@ function generateCode() {
 
 async function initPeer(customId = null) {
     const id = customId || generateCode();
-    // Use PeerJS public server. The ID is the 12-digit code
-    peer = new Peer(id);
+    // Use PeerJS public server with Google STUN servers for NAT traversal (Internet connectivity)
+    peer = new Peer(id, {
+        config: {
+            'iceServers': [
+                { 'urls': 'stun:stun.l.google.com:19302' },
+                { 'urls': 'stun:stun1.l.google.com:19302' },
+                { 'urls': 'stun:stun2.l.google.com:19302' },
+                { 'urls': 'stun:stun3.l.google.com:19302' },
+                { 'urls': 'stun:stun4.l.google.com:19302' },
+            ],
+            'sdpSemantics': 'unified-plan'
+        }
+    });
     
     return new Promise((resolve) => {
         peer.on('open', (peerId) => {
@@ -128,6 +139,27 @@ async function initPeer(customId = null) {
 initPeer().then(id => {
     hostCodeEl.innerText = id;
     isHost = true;
+});
+
+// Refresh code button
+document.getElementById('refresh-code').addEventListener('click', async () => {
+    const btn = document.getElementById('refresh-code');
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.5';
+    hostCodeEl.innerText = "Generating...";
+    
+    if (peer) {
+        peer.destroy();
+    }
+    
+    // Small delay to ensure cleanup
+    setTimeout(async () => {
+        const id = await initPeer();
+        hostCodeEl.innerText = id;
+        isHost = true;
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+    }, 100);
 });
 
 // Host Logic
