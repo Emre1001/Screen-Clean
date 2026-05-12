@@ -1,62 +1,128 @@
-# 🖥️ Screen-Clean
+# Screen-Clean v2.0
 
-> **High-Performance Peer-to-Peer Screen Sharing & Remote Control**
+> **P2P Screen Sharing & Remote Control mit Multi-Viewer Support**
 
-Screen-Clean ist eine ultra-flüssige, minimalistische und moderne Windows-App für Screen-Sharing und Fernsteuerung. Gebaut mit **Electron**, **WebRTC** und einem Fokus auf **High-FPS Performance (bis zu 120Hz)** sowie ein atemberaubendes **Glassmorphism Design**.
+Screen-Clean ist eine Electron-App fuer verlustfreies Screen-Sharing, Fernsteuerung und Zusammenarbeit. Mehrere Personen koennen gleichzeitig zuschauen, der Host waehlt wer steuert, und alle sehen die Cursor der anderen.
 
-![Status](https://img.shields.io/badge/Status-Ultra--Premium-blueviolet?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-2.0.0-blueviolet?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Version](https://img.shields.io/badge/Version-1.0-orange?style=for-the-badge)
+![Platform](https://img.shields.io/badge/Platform-Windows-blue?style=for-the-badge)
 
 ---
 
-## ✨ Features
+## Features
 
-- 🚀 **120 FPS Support**: Erlebe Screen-Sharing so flüssig wie nie zuvor (bis zu 120Hz).
-- 🖱️ **Fernsteuerung**: Übernimm die Kontrolle über den Host-PC mit minimaler Latenz.
-- 🎨 **Glassmorphism UI**: Ein modernes, animiertes Design mit Blur-Effekten und Glow-Details.
-- 📡 **Echtes Peer-to-Peer**: Direkte Verbindung zwischen Host und Viewer ohne Zwischenserver (WebRTC).
-- 🔐 **12-Stelliger Code**: Sicherer Verbindungsaufbau mit manuellem Bestätigungssystem.
-- 🔊 **Audio-Support**: Übertrage Systemsound in Echtzeit.
-- 🛠️ **Performance Modi**: 
-    - **Voll Automatik**: Die App optimiert alles für dich.
-    - **Automatik (Slider)**: Wähle zwischen Qualität oder FPS Fokus.
-    - **Manuell**: Volle Kontrolle über Auflösung, FPS und Bitrate.
+**Streaming**
+- Bis zu 120 FPS Screen-Sharing via WebRTC (P2P, kein Server)
+- H.264 (NVENC) oder VP8 Codec
+- Audio-Uebertragung
+- Dynamische Qualitaetsanpassung (Aufloesung, FPS, Bitrate)
 
----
+**Multi-Viewer**
+- Mehrere Personen koennen gleichzeitig beitreten
+- Teilnehmer-Panel zeigt alle Viewer mit Farben und Namen
+- Host sieht wer verbunden ist und kann Viewer trennen
 
-## ⌨️ Globale Shortcuts
+**Fernsteuerung**
+- Host waehlt wer den PC steuern darf
+- Maus, Tastatur, Scrollrad und Modifier-Keys (Strg+C, Alt+Tab, etc.)
+- Steuerungsanfrage: Viewer kann Kontrolle anfordern, Host entscheidet
+- Steuerungs-Richtlinie: Immer fragen / Automatisch erlauben / Immer ablehnen
 
-Um die Bedienung so schnell wie möglich zu machen, unterstützt Screen-Clean globale Hotkeys:
+**Cursor-Sharing**
+- Alle Viewer sehen die Cursor der anderen in Echtzeit
+- Jeder Cursor hat eigene Farbe + Namenslabel
+- Wer gerade steuert wird mit Gamepad-Icon markiert
 
-| Aktion | Shortcut | Beschreibung |
-| :--- | :--- | :--- |
-| **App Toggle** | `Alt + Shift + S` | Zeigt oder versteckt die App (wenn sie im Hintergrund läuft). |
-| **Stopp / Trennen** | `Strg + Shift + X` | Beendet sofort das Hosting oder bricht die Verbindung ab. |
+**Namen & Verlauf**
+- Host und Viewer koennen eigene Namen eingeben
+- Letzte Verbindungen werden gespeichert
+- Ein Klick um alte Verbindungen erneut zu joinen
 
----
-
-## 🛠️ Technik-Stack
-
-- **Frontend**: HTML5, Vanilla CSS3 (Custom Design System), JavaScript.
-- **Backend**: [Electron](https://www.electronjs.org/) für native Windows-Integration.
-- **Networking**: [PeerJS](https://peerjs.com/) (WebRTC) für verlustfreie P2P Übertragung.
-- **Input**: `robotjs` für native Maus- und Tastatur-Emulation.
-
----
-
-## 🖼️ Vorschau
-
-*Das Design basiert auf modernsten UI-Trends:*
-- **Abgerundete Ecken (30px+)**
-- **Interaktive Hover-Animationen**
-- **Dynamic Performance Scaling**
+**UI**
+- Glassmorphism Design mit Animationen
+- Toast-Benachrichtigungen fuer alle Events
+- Einstellungen persistent ueber Neustarts
+- Tray-Icon, globale Shortcuts, Vollbild-Modus
 
 ---
 
-## 🤝 Mitwirken
-Feedback und Pull Requests sind jederzeit willkommen! 
+## Shortcuts
+
+| Aktion | Shortcut |
+|--------|----------|
+| App ein-/ausblenden | `Alt + Shift + S` |
+| Stopp / Trennen | `Strg + Shift + X` |
 
 ---
 
-**Entwickelt für maximale Performance. Rein, schnell, OpenSource, Screen-Clean.**
+## Installation
+
+```bash
+git clone <repo-url>
+cd Screen-Clean
+npm install
+```
+
+### Starten
+```bash
+npm start
+```
+
+### .exe bauen
+```bash
+npm run build
+```
+Die portable .exe liegt dann in `/dist`.
+
+---
+
+## Technik
+
+| Komponente | Technologie |
+|-----------|------------|
+| Desktop | Electron 41 |
+| Streaming | WebRTC (PeerJS) |
+| Fernsteuerung | robotjs |
+| Signaling | 0.peerjs.com (STUN/ICE) |
+| UI | Vanilla JS + CSS3 |
+
+---
+
+## Verbindungsablauf
+
+1. Host startet App → bekommt 12-stelligen Code
+2. Viewer gibt Code ein oder waehlt aus WLAN-Erkennung / Verlauf
+3. Host bestaetigt Anfrage, waehlt Monitor
+4. Stream startet, Viewer sieht Bildschirm
+5. Viewer fordert Steuerung an → Host erlaubt/verweigert
+6. Alle sehen Cursor der anderen Teilnehmer
+
+---
+
+## Einstellungen
+
+- **Audio**: System-Audio mitstreamen
+- **Fernsteuerung**: Erlauben/Verbieten + Richtlinie (fragen/auto/nie)
+- **Cursor**: Remote-Cursor ein/ausblenden
+- **Performance**: Voll-Automatik / Slider / Manuell (Aufloesung, FPS, Bitrate)
+- **Codec**: H.264 (NVENC) oder VP8
+- **Laptop-Modus**: Reduziert auf 480p/15fps
+- **GPU-Kompatibilitaet**: Hardware-Beschleunigung deaktivieren bei Blackscreen
+- **Verlauf**: Verbindungsverlauf loeschen
+
+---
+
+## Troubleshooting
+
+**Schwarzer Bildschirm**: Einstellungen → Kompatibilitaets-Modus aktivieren (startet App neu ohne GPU)
+
+**Bitrate 0**: Firewall blockiert WebRTC. Windows Firewall → Screen-Clean erlauben.
+
+**Fernsteuerung geht nicht**: robotjs muss installiert sein (`npm install`). Pruefen ob Toggle aktiv.
+
+**Code besetzt**: Code neu generieren mit dem Refresh-Button.
+
+---
+
+MIT License
