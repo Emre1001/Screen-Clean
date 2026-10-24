@@ -5,12 +5,11 @@
   top: 0;
   pointer-events: none;
   z-index: 5;
-  transition: left 70ms linear, top 70ms linear;
-  will-change: left, top;
-  animation: cursor-in 320ms var(--spring, ease-out) both;
+  will-change: transform;
+  animation: cursor-in 240ms ease-out both;
 }
 @keyframes cursor-in {
-  from { opacity: 0; transform: scale(0.6); }
+  from { opacity: 0; }
 }
 .rcursor svg {
   display: block;
@@ -80,6 +79,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .rcursor { transition: none; animation: none; }
+  .rcursor { animation: none; }
   .floater { animation-duration: 0.01ms; }
 }

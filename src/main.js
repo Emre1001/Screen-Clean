@@ -1,13 +1,21 @@
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
+import './vendor/i18n.js';
+import './locales/en.js';
+import './locales/de.js';
+import './locales/tr.js';
+import './vendor/language-picker.js';
+import './vendor/language-picker.css';
+import './vendor/update-dialog.js';
+import './vendor/update-dialog.css';
 import './styles/app.css';
 
 import { call, isTauri, isWeb, on, win } from './lib/bridge.js';
 import { host } from './lib/host.js';
 import { updateBeacon } from './lib/lan.js';
 import { fmtCode, net } from './lib/net.js';
-import { applyTheme, cfg, emit, loadConfig, log, onEvent, setProfile, upsertFriend } from './lib/store.js';
-import { avatar, h, icon, mount, sound, toast, transition } from './lib/ui.js';
+import { applyTheme, cfg, collect, emit, loadConfig, log, onEvent, setProfile, upsertFriend } from './lib/store.js';
+import { avatar, h, icon, mount, sound, t, toast, transition } from './lib/ui.js';
 import { viewer } from './lib/viewer.js';
 import { joinView } from './views/join.js';
 import { sessionView } from './views/session.js';
@@ -15,17 +23,21 @@ import { settingsView } from './views/settings.js';
 import { openSetup } from './views/setup.js';
 import { shareView } from './views/share.js';
 
+const I18n = window.I18n;
+
 async function boot() {
+  I18n.init();
   // Linux-WebKitGTK ohne WebRTC → Oberfläche im Browser (siehe web.rs)
   if (isTauri && typeof RTCPeerConnection === 'undefined') return browserMode();
   await loadConfig();
   applyTheme();
   const info = await call('sys_info').catch(() => ({}));
-  if (!cfg.profile.name) setProfile({ name: (info.hostname || 'Ich').slice(0, 32) });
+  if (!cfg.profile.name) setProfile({ name: (info.hostname || t('setup.defaultName')).slice(0, 32) });
   call('set_close_to_tray', { enabled: cfg.settings.closeToTray }).catch(() => {});
   net.start();
   renderShell();
   wireEvents();
+  startUpdates(info.version);
   if (!cfg.setupDone) openSetup();
   log(`Screen-Clean ${info.version || ''} gestartet (${isTauri ? info.os : isWeb ? `${info.os}, Browser-Modus` : 'Browser'})`);
   // Fenster erst zeigen, wenn alles gezeichnet ist – kein Aufblitzen
@@ -34,29 +46,53 @@ async function boot() {
 }
 
 function browserMode() {
-  const start = () => call('web_start').catch((e) => toast(`Browser-Modus: ${e}`, { type: 'error' }));
+  const start = () => call('web_start').catch((e) => toast(t('browser.failed', { error: String(e) }), { type: 'error' }));
   mount(document.getElementById('app'), h('div.browser-mode.stagger',
     h('img', { src: '/logo.svg', alt: '', width: 64, height: 64 }),
-    h('h1.title', 'Screen-Clean öffnet sich im Browser'),
-    h('p.lead', 'Das System-WebView kann hier keine Direktverbindungen (WebRTC). Die Oberfläche läuft deshalb in Chrome, Chromium oder deinem Standard-Browser – Tray, Tastenkürzel, Fernsteuerung und Cursor-Overlay bleiben in der App.'),
-    h('button.btn.primary.lg', { onclick: start }, icon('Globe', 17), 'Im Browser öffnen')));
+    h('h1.title', t('browser.title')),
+    h('p.lead', t('browser.text')),
+    h('button.btn.primary.lg', { onclick: start }, icon('Globe', 17), t('browser.open'))));
   start();
+}
+
+/** Update-Fenster: prüft GitHub Releases über das Rust-Backend (signiertes latest.json). */
+function startUpdates(version) {
+  if (!isTauri && !isWeb) return; // reiner Browser (Entwicklung): kein Installer zum Aktualisieren
+  const adapter = {
+    mode: 'desktop',
+    check: () => call('update_check'),
+    async install(onProgress) {
+      const off = await on('update:progress', onProgress);
+      try {
+        await call('update_install');
+      } finally {
+        off();
+      }
+    },
+  };
+  window.UpdateUI.init({ adapter, currentVersion: version || '' });
 }
 
 // --- Shell -------------------------------------------------------------------
 const NAV = [
-  ['share', 'Teilen', 'ScreenShare'],
-  ['join', 'Beitreten', 'LogIn'],
-  ['settings', 'Einstellungen', 'Settings'],
+  ['share', 'nav.share', 'ScreenShare'],
+  ['join', 'nav.join', 'LogIn'],
+  ['settings', 'nav.settings', 'Settings'],
 ];
 
 function renderShell() {
   const app = document.getElementById('app');
-  const views = { share: shareView(), join: joinView(), settings: settingsView() };
+  let views;
+  let subs = [];
+  const buildViews = () => {
+    subs.forEach((off) => off());
+    [views, subs] = collect(() => ({ share: shareView(), join: joinView(), settings: settingsView() }));
+  };
+  buildViews();
   const session = sessionView();
   const content = h('main.content');
   const pill = h('span.nav-pill');
-  const items = Object.fromEntries(NAV.map(([id, label, ic]) => [id, h('button.nav-item', { type: 'button', onclick: () => nav(id) }, icon(ic, 18), h('span', label))]));
+  const items = Object.fromEntries(NAV.map(([id, , ic]) => [id, h('button.nav-item', { type: 'button', onclick: () => nav(id) }, icon(ic, 18), h('span'))]));
   const sessionCard = h('div');
   const status = h('div.status');
   const me = h('button.me', { type: 'button', onclick: () => { nav('settings'); views.settings.open('general'); } });
@@ -98,6 +134,11 @@ function renderShell() {
     paintSide();
   }
 
+  function paintLabels() {
+    for (const [id, key] of NAV) items[id].querySelector('span').textContent = t(key);
+    call('tray_labels', { show: t('tray.show'), stop: t('tray.stop'), quit: t('tray.quit') }).catch(() => {});
+  }
+
   function paintNav() {
     for (const [id, el] of Object.entries(items)) el.classList.toggle('on', id === current);
     const active = items[current];
@@ -114,17 +155,32 @@ function renderShell() {
     mount(sessionCard, viewer.active && !open
       ? h('button.side-session', { type: 'button', onclick: () => nav('session') },
         viewer.host ? avatar(viewer.host.name, viewer.host.color, 30) : h('span.spinner'),
-        h('div.row-main', h('span.row-title', viewer.host?.name || fmtCode(viewer.code)), h('span.row-sub', viewer.state === 'live' ? 'Zurück zur Session' : 'Verbinde …')),
+        h('div.row-main', h('span.row-title', viewer.host?.name || fmtCode(viewer.code)), h('span.row-sub', viewer.state === 'live' ? t('side.backToSession') : t('session.connecting'))),
         icon('ChevronRight', 16))
       : null);
   }
 
   const paintStatus = () => {
-    const [cls, label] = { online: ['ok', 'Online'], connecting: ['warn', 'Verbinde …'], busy: ['warn', 'Code belegt'], error: ['bad', 'Fehler'], offline: ['bad', 'Offline'] }[net.state];
-    mount(status, h(`span.dot.${cls}`), label, net.state === 'online' ? h('span.mono.faint', { style: { marginLeft: 'auto' } }, fmtCode(cfg.code)) : null);
-    status.title = net.error || '';
+    const [cls, key] = { online: ['ok', 'status.online'], connecting: ['warn', 'status.connecting'], busy: ['warn', 'status.busy'], error: ['bad', 'status.error'], offline: ['bad', 'status.offline'] }[net.state];
+    mount(status, h(`span.dot.${cls}`), t(key), net.state === 'online' ? h('span.mono.faint', { style: { marginInlineStart: 'auto' } }, fmtCode(cfg.code)) : null);
+    status.title = net.error ? t(net.error) : '';
   };
-  const paintMe = () => mount(me, avatar(cfg.profile.name, cfg.profile.color, 30), h('div.row-main', h('span.row-title', cfg.profile.name), h('span.row-sub', 'Profil & Einstellungen')));
+  const paintMe = () => mount(me, avatar(cfg.profile.name, cfg.profile.color, 30), h('div.row-main', h('span.row-title', cfg.profile.name), h('span.row-sub', t('side.profile'))));
+
+  // Sprachwechsel: Hauptansichten neu aufbauen (Zustand liegt in lib/), Session bleibt
+  I18n.onChange(() => {
+    buildViews();
+    const was = current;
+    current = '';
+    mount(content, views[was || 'share']);
+    current = was || 'share';
+    paintLabels();
+    paintNav();
+    paintSide();
+    paintStatus();
+    paintMe();
+    emit('lang');
+  });
 
   onEvent('nav', nav);
   onEvent('net', paintStatus);
@@ -138,6 +194,7 @@ function renderShell() {
   onEvent('viewer:participants', paintSide);
   onEvent('setup', () => openSetup());
   new ResizeObserver(paintNav).observe(sidebar);
+  paintLabels();
   paintStatus();
   paintMe();
   nav('share');
@@ -154,9 +211,9 @@ function requestCard({ who, color, text, accept, deny, trust, ms }) {
   const card = h('div.req-card', { role: 'alertdialog', 'aria-label': `${who}: ${text}` },
     h('div.req-top', avatar(who, color, 38), h('div.req-text', h('b', who), h('span', text))),
     h('div.req-actions',
-      h('button.btn.sm.ghost', { type: 'button', onclick: done(deny) }, 'Ablehnen'),
-      trust && h('button.btn.sm', { type: 'button', 'data-tip': 'Annehmen und künftig ohne Nachfrage', onclick: done(trust) }, 'Immer erlauben'),
-      h('button.btn.sm.primary', { type: 'button', onclick: done(accept) }, 'Annehmen')),
+      h('button.btn.sm.ghost', { type: 'button', onclick: done(deny) }, t('req.decline')),
+      trust && h('button.btn.sm', { type: 'button', 'data-tip': t('req.always.tip'), onclick: done(trust) }, t('req.alwaysAllow')),
+      h('button.btn.sm.primary', { type: 'button', onclick: done(accept) }, t('req.accept'))),
     ms && h('span.timer', { style: { animationDuration: `${ms}ms` } }));
   root.append(card);
   return done();
@@ -173,10 +230,10 @@ function wireEvents() {
   const cards = new Map();
   onEvent('host:request', (r) => {
     sound('request');
-    notifyIfHidden('Jemand möchte zuschauen', `${r.name} fragt nach deinem Bildschirm`);
+    notifyIfHidden(t('notify.join.title'), t('notify.join.body', { name: r.name }));
     cards.get(r.id)?.();
     cards.set(r.id, requestCard({
-      who: r.name, color: r.color, text: `möchte zuschauen · ${fmtCode(r.code)}`, ms: 60_000,
+      who: r.name, color: r.color, text: t('req.watch', { code: fmtCode(r.code) }), ms: 60_000,
       accept: () => host.accept(r),
       deny: () => host.deny(r.id),
       trust: () => { upsertFriend(r.code, r.name, { trusted: true }); host.accept(r); },
@@ -188,19 +245,19 @@ function wireEvents() {
   });
   onEvent('host:control-request', (v) => {
     sound('request');
-    notifyIfHidden('Steuerungsanfrage', `${v.name} möchte Maus und Tastatur übernehmen`);
-    requestCard({ who: v.name, color: v.color, text: 'möchte Maus und Tastatur übernehmen', accept: () => host.setController(v.id), deny: () => host.denyControl(v.id) });
+    notifyIfHidden(t('notify.control.title'), t('notify.control.body', { name: v.name }));
+    requestCard({ who: v.name, color: v.color, text: t('req.control'), accept: () => host.setController(v.id), deny: () => host.denyControl(v.id) });
   });
-  onEvent('host:join', (v) => { sound('join'); toast(`${v.name} ist dabei`, { icon: 'Eye' }); });
-  onEvent('host:leave', (v) => { sound('leave'); toast(`${v.name} ist gegangen`, { icon: 'LogOut', ms: 2400 }); });
+  onEvent('host:join', (v) => { sound('join'); toast(t('toast.joined', { name: v.name }), { icon: 'Eye' }); });
+  onEvent('host:leave', (v) => { sound('leave'); toast(t('toast.left', { name: v.name }), { icon: 'LogOut', ms: 2400 }); });
   let waiting;
   onEvent('host:need-share', () => {
-    notifyIfHidden('Jemand wartet', 'Starte das Teilen, damit deine Zuschauer etwas sehen.');
+    notifyIfHidden(t('notify.waiting.title'), t('notify.waiting.body'));
     waiting?.();
-    waiting = toast('Jemand wartet auf deinen Bildschirm', { icon: 'ScreenShare', ms: 8000, action: { label: 'Teilen', run: () => host.startShare() } });
+    waiting = toast(t('toast.waiting'), { icon: 'ScreenShare', ms: 8000, action: { label: t('nav.share'), run: () => host.startShare() } });
   });
-  onEvent('host:share', (on) => on && waiting?.());
-  onEvent('host:share-error', (e) => e?.name !== 'NotAllowedError' && toast(`Teilen fehlgeschlagen: ${e?.message || e}`, { type: 'error' }));
+  onEvent('host:share', (active) => active && waiting?.());
+  onEvent('host:share-error', (e) => e?.name !== 'NotAllowedError' && toast(t('toast.shareFailed', { error: e?.message || String(e) }), { type: 'error' }));
   onEvent('host:chat', (m) => {
     if (m.from === 'host') return;
     sound('chat');
@@ -213,17 +270,18 @@ function wireEvents() {
     const was = host.sharing || viewer.controlling;
     host.emergencyStop();
     if (viewer.controlling) viewer.releaseControl();
-    if (was) toast('Notbremse: Steuerung entzogen, Teilen beendet', { type: 'warn', icon: 'Shield' });
+    if (was) toast(t('toast.brake'), { type: 'warn', icon: 'Shield' });
   });
   // Beenden: alle sauber verabschieden, damit niemand ins Leere neu verbindet
   on('app:quit', () => {
     host.broadcast({ t: 'host-stop' });
     viewer.leave();
   });
+  // Browser-Modus: Tray „Öffnen“ holt dieses Fenster nach vorn statt ein zweites zu öffnen
+  on('app:focus', () => window.focus());
 
   document.addEventListener('contextmenu', (e) => !e.target.closest('input, textarea, .selectable, .chat-list') && e.preventDefault());
   updateBeacon();
-  emit('ready');
 }
 
 boot().catch((e) => {

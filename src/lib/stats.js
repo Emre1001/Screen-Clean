@@ -1,6 +1,6 @@
 // Live-Diagnose aus RTCPeerConnection.getStats().
 
-const ROUTES = { host: 'Direkt (LAN)', srflx: 'Direkt (P2P)', prflx: 'Direkt (P2P)', relay: 'Relay (TURN)' };
+const ROUTES = { host: 'lan', srflx: 'p2p', prflx: 'p2p', relay: 'relay' }; // Schlüssel für route.* in den Sprachdateien
 
 /**
  * Liest Video-Stats. `dir` = 'in' (Viewer) oder 'out' (Host).

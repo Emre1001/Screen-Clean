@@ -1,31 +1,22 @@
 // Cursor-Overlay des Hosts: transparentes, klick-durchlässiges Fenster über dem
 // geteilten Monitor. Bekommt Zustand per Tauri-Event vom Hauptfenster.
 import '@fontsource-variable/geist';
+import './vendor/i18n.js';
+import './locales/en.js';
+import './locales/de.js';
+import './locales/tr.js';
 import { listen } from '@tauri-apps/api/event';
-import { cursorEl } from './views/controls.js';
+import { cursorLayer } from './views/controls.js';
 import './styles/overlay.css';
 
 const layer = document.getElementById('layer');
 const banner = document.getElementById('banner');
-const els = new Map();
+const cursors = cursorLayer(layer);
+const t = (k, p) => window.I18n.t(k, p);
+window.I18n.init();
 
 listen('overlay:state', ({ payload }) => {
-  const seen = new Set();
-  for (const c of payload.cursors) {
-    seen.add(c.id);
-    const key = `${c.name}${c.color}${c.ctl}`;
-    let el = els.get(c.id);
-    if (!el || el.dataset.key !== key) {
-      el?.remove();
-      el = cursorEl(c.name, c.color, c.ctl);
-      el.dataset.key = key;
-      layer.append(el);
-      els.set(c.id, el);
-    }
-    el.style.left = `${c.x * 100}%`;
-    el.style.top = `${c.y * 100}%`;
-  }
-  for (const [id, el] of els) if (!seen.has(id)) { el.remove(); els.delete(id); }
+  cursors.sync(payload.cursors);
 
   const ctl = payload.controller;
   const key = payload.paused ? 'paused' : ctl ? `ctl:${ctl.name}` : '';
@@ -34,10 +25,10 @@ listen('overlay:state', ({ payload }) => {
   banner.hidden = !key;
   banner.style.setProperty('--c', ctl?.color || '#f0b443');
   banner.replaceChildren();
-  if (payload.paused) banner.append('Übertragung pausiert');
+  if (payload.paused) banner.append(t('overlay.paused'));
   else if (ctl) {
     const kbd = (t) => Object.assign(document.createElement('kbd'), { textContent: t });
-    banner.append(`${ctl.name} steuert deinen Computer · Stopp mit `, kbd('Strg'), kbd('Shift'), kbd('X'));
+    banner.append(`${t('overlay.control', { name: ctl.name })} `, kbd(t('kbd.ctrl')), kbd('Shift'), kbd('X'));
   }
 });
 

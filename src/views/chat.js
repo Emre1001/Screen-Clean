@@ -2,20 +2,20 @@
 import { call } from '../lib/bridge.js';
 import { REACTIONS } from '../lib/host.js';
 import { onEvent } from '../lib/store.js';
-import { avatar, h, icon, linkify } from '../lib/ui.js';
+import { avatar, h, icon, linkify, t } from '../lib/ui.js';
 
-const time = (ts) => new Date(ts).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+const time = (ts) => window.I18n.date(new Date(ts), { hour: '2-digit', minute: '2-digit' });
 const openUrl = (url) => call('open_url', { url });
 
 /** source = { messages(): Msg[], send(text), react(emoji), isMine(msg), event } */
 export function chatPanel(source) {
   const list = h('div.chat-list', { role: 'log', 'aria-live': 'polite' });
-  const send = h('button.send', { type: 'button', 'aria-label': 'Senden', disabled: true, onclick: () => submit() }, icon('ArrowRight', 17));
+  const send = h('button.send', { type: 'button', 'aria-label': t('chat.send'), disabled: true, onclick: () => submit() }, icon('ArrowRight', 17));
   const input = h('textarea.chat-input', {
     rows: 1,
     maxlength: 1000,
-    placeholder: 'Nachricht',
-    'aria-label': 'Nachricht',
+    placeholder: t('chat.message'),
+    'aria-label': t('chat.message'),
     onkeydown: (e) => {
       e.stopPropagation(); // nie an die Fernsteuerung durchreichen
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -47,7 +47,7 @@ export function chatPanel(source) {
     const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
     if (!msgs.length) {
       shown = 0;
-      list.replaceChildren(h('div.empty', { style: { margin: 'auto' } }, icon('MessageCircle', 26), h('b', 'Noch ruhig hier'), h('span', 'Schreib die erste Nachricht.')));
+      list.replaceChildren(h('div.empty', { style: { margin: 'auto' } }, icon('MessageCircle', 26), h('b', t('chat.empty')), h('span', t('chat.empty.hint'))));
       return;
     }
     if (shown === 0 || msgs.length < shown) list.replaceChildren();
@@ -67,11 +67,17 @@ export function chatPanel(source) {
   };
 
   onEvent(source.event, render);
+  onEvent('lang', () => {
+    input.placeholder = t('chat.message');
+    input.setAttribute('aria-label', t('chat.message'));
+    send.setAttribute('aria-label', t('chat.send'));
+    if (!source.messages().length) render();
+  });
   render();
 
   const el = h('div.chat',
     list,
-    h('div.reactions', REACTIONS.map((e) => h('button.react', { type: 'button', 'aria-label': `Reaktion ${e}`, onclick: () => source.react(e) }, e))),
+    h('div.reactions', REACTIONS.map((e) => h('button.react', { type: 'button', 'aria-label': t('chat.reaction', { emoji: e }), onclick: () => source.react(e) }, e))),
     h('div.chat-compose', input, send));
   el.focusInput = () => input.focus();
   el.refresh = () => { shown = 0; render(); };

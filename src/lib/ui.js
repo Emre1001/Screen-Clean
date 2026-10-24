@@ -4,16 +4,20 @@ import {
   Eye, Gamepad2, Globe, Hand, Info, Keyboard, Laptop, LogIn, LogOut, Maximize, Minimize, MessageCircle, Monitor,
   MonitorUp, MousePointer2, Pause, Play, Plus, RefreshCw, ScreenShare, ScreenShareOff, ScrollText, Send, Settings,
   Shield, ShieldCheck, SlidersHorizontal, Sparkles, Star, Trash2, TriangleAlert, Users, Volume2, VolumeX, Wifi, X,
-  Zap, History, FileText, Sun, Moon, SunMoon, Radio,
+  Zap, History, FileText, Sun, Moon, SunMoon, Radio, ChevronDown,
 } from 'lucide';
+import '../vendor/i18n.js';
 import { cfg } from './store.js';
+
+/** Übersetzung – Schlüssel stehen in src/locales/. */
+export const t = (key, params) => window.I18n.t(key, params);
 
 const ICONS = {
   Activity, ArrowRight, ArrowLeft, Check, ChevronLeft, ChevronRight, CircleCheck, Copy, Cpu, Crown, Eye, Gamepad2,
   Globe, Hand, Info, Keyboard, Laptop, LogIn, LogOut, Maximize, Minimize, MessageCircle, Monitor, MonitorUp,
   MousePointer2, Pause, Play, Plus, RefreshCw, ScreenShare, ScreenShareOff, ScrollText, Send, Settings, Shield,
   ShieldCheck, SlidersHorizontal, Sparkles, Star, Trash2, TriangleAlert, Users, Volume2, VolumeX, Wifi, X, Zap,
-  History, FileText, Sun, Moon, SunMoon, Radio,
+  History, FileText, Sun, Moon, SunMoon, Radio, ChevronDown,
 };
 
 export function icon(name, size = 18, cls = '') {
@@ -92,10 +96,11 @@ export function avatar(name, color, size = 32) {
 
 export function relTime(ts) {
   const s = Math.round((Date.now() - ts) / 1000);
-  if (s < 60) return 'gerade eben';
-  if (s < 3600) return `vor ${Math.round(s / 60)} Min.`;
-  if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
-  return new Date(ts).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' });
+  const I = window.I18n;
+  if (s < 60) return I.relative(0, 'second');
+  if (s < 3600) return I.relative(-Math.round(s / 60), 'minute');
+  if (s < 86400) return I.relative(-Math.round(s / 3600), 'hour');
+  return I.date(new Date(ts), { day: 'numeric', month: 'short' });
 }
 
 /** Button mit Ladezustand: btn.loading(true) */
@@ -157,7 +162,7 @@ export function sheet(content, { wide = false, onClose, dismissable = true } = {
   return close;
 }
 
-export function confirmDialog({ title, text, ok = 'OK', cancel = 'Abbrechen', danger = false }) {
+export function confirmDialog({ title, text, ok = t('common.ok'), cancel = t('common.cancel'), danger = false }) {
   return new Promise((resolve) => {
     let result = false;
     sheet((close) => [
@@ -178,13 +183,13 @@ export async function copy(text, btn) {
       btn.classList.add('swapped');
       clearTimeout(btn._t);
       btn._t = setTimeout(() => btn.classList.remove('swapped'), 1400);
-    } else toast('Kopiert', { type: 'ok', ms: 1600 });
+    } else toast(t('common.copied'), { type: 'ok', ms: 1600 });
   } catch {
-    toast('Kopieren nicht möglich', { type: 'error' });
+    toast(t('common.copyFailed'), { type: 'error' });
   }
 }
 
-export function copyButton(getText, cls = '.icon-btn', tip = 'Kopieren', label = '') {
+export function copyButton(getText, cls = '.icon-btn', tip = t('common.copy'), label = '') {
   const b = h(`button${cls}`, { type: 'button', 'data-tip': tip || null, onclick: () => copy(getText(), b) },
     h('span.swap', icon('Copy', 16), icon('Check', 16)), label && h('span', label));
   return b;

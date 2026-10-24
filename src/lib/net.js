@@ -97,10 +97,10 @@ class Net {
         return;
       case 'unavailable-id':
         // Alte Sitzung hält den Code noch (z. B. nach Absturz) – Server gibt ihn bald frei.
-        this.setState('busy', 'Dein Code ist noch belegt – neuer Versuch …');
+        this.setState('busy', 'share.net.busy');
         break;
       case 'browser-incompatible':
-        this.setState('error', 'WebRTC wird von diesem WebView nicht unterstützt.');
+        this.setState('error', 'net.noWebrtc');
         return;
       case 'invalid-id':
         cfg.code = newCode();
@@ -110,7 +110,7 @@ class Net {
       case 'server-error':
       case 'socket-error':
       case 'socket-closed':
-        this.setState('connecting', 'Signaling-Server nicht erreichbar');
+        this.setState('connecting', 'net.noServer');
         break;
       default:
         return; // Verbindungsfehler einzelner Peers betreffen das Netz nicht

@@ -44,10 +44,25 @@ export let cfg = DEFAULTS();
 // --- Event-Bus -------------------------------------------------------------
 const bus = new EventTarget();
 export const emit = (type, detail) => bus.dispatchEvent(new CustomEvent(type, { detail }));
+let scope = null;
 export function onEvent(type, fn) {
   const h = (e) => fn(e.detail);
   bus.addEventListener(type, h);
-  return () => bus.removeEventListener(type, h);
+  const off = () => bus.removeEventListener(type, h);
+  scope?.push(off);
+  return off;
+}
+
+/** Baut etwas und sammelt alle dabei angelegten Abos – zum späteren Abräumen. */
+export function collect(build) {
+  const prev = scope;
+  scope = [];
+  try {
+    const result = build();
+    return [result, scope];
+  } finally {
+    scope = prev;
+  }
 }
 
 // --- Persistenz ------------------------------------------------------------
@@ -118,9 +133,45 @@ export function log(msg, level = 'info', { fromRust = false } = {}) {
   emit('log');
 }
 
-/** Hell/Dunkel: 'system' folgt dem Betriebssystem (reines CSS), sonst fest. */
-export function applyTheme() {
-  const t = cfg.settings.theme;
-  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-  else delete document.documentElement.dataset.theme;
+// --- Erscheinungsbild ------------------------------------------------------
+const darkMq = matchMedia('(prefers-color-scheme: dark)');
+
+/**
+ * Hell/Dunkel anwenden. `origin` = Mittelpunkt des geklickten Bedienelements:
+ * dann wächst das neue Theme als Kreis von dort aus über den Bildschirm.
+ */
+export function applyTheme(origin) {
+  const pref = cfg.settings.theme;
+  const root = document.documentElement;
+  const next = pref === 'dark' || (pref === 'system' && darkMq.matches) ? 'dark' : 'light';
+  try {
+    localStorage.setItem('theme', pref); // für das Vor-Zeichnen-Skript in index.html
+  } catch {
+    /* Speicher gesperrt – Theme gilt trotzdem */
+  }
+  if (root.dataset.theme === next) return;
+  const set = () => (root.dataset.theme = next);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !document.startViewTransition) return set();
+  root.classList.add('theme-switching');
+  if (origin) root.classList.add('theme-reveal');
+  const vt = document.startViewTransition(set);
+  if (origin) {
+    const { x, y } = origin;
+    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    vt.ready.then(() => root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+      { duration: 700, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', pseudoElement: '::view-transition-new(root)' },
+    ));
+  }
+  const done = () => root.classList.remove('theme-switching', 'theme-reveal');
+  vt.finished.finally(done);
+  setTimeout(done, 1500); // falls der Übergang hängt (z. B. Fenster verdeckt): Übergänge nie dauerhaft einfrieren
+}
+darkMq.addEventListener('change', () => cfg.settings.theme === 'system' && applyTheme());
+
+/** Mittelpunkt eines Elements – Ursprung für den Kreis-Übergang. */
+export function originOf(el) {
+  if (!el?.getBoundingClientRect) return undefined;
+  const r = el.getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
 }

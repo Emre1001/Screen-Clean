@@ -1,4 +1,6 @@
-# Tag pushen (z. B. v0.1.0) oder manuell starten → Installer für Windows & Linux als Build-Artefakte.
+# Tag pushen (z. B. v0.1.1) oder manuell starten → Installer für Windows & Linux als Build-Artefakte.
+# Mit dem Secret TAURI_SIGNING_PRIVATE_KEY entstehen zusätzlich signierte Update-Dateien
+# und ein latest.json für das In-App-Update.
 name: Release
 on:
   push:
@@ -13,6 +15,9 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,12 +33,36 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev patchelf
       - run: npm ci
       - run: npm test
-      - run: npx tauri build
+      - name: Bauen
+        shell: bash
+        run: |
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            npx tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}'
+          else
+            npx tauri build
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: screen-clean-${{ runner.os }}
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe.sig
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/appimage/*.AppImage.sig
           if-no-files-found: error
+
+  # latest.json aus den Signaturen – gehört mit den Installern in den Release
+  manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: art
+      - run: node scripts/latest-json.mjs art > latest.json && cat latest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: latest-json
+          path: latest.json

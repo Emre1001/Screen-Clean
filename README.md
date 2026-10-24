@@ -69,7 +69,7 @@ Feste sechs Zeichen pro Installation. Freunde speichern, als vertraut markieren,
 </tr>
 </table>
 
-Dazu: Einrichtung in sechs Schritten mit System-Check, Hell- und Dunkelmodus nach System, Live-Diagnose (FPS, Bitrate, Ping, Verbindungsweg), Tray, Autostart und eine Notbremse auf <kbd>Strg</kbd> <kbd>Shift</kbd> <kbd>X</kbd>.
+Dazu: Deutsch, English und Türkçe, Updates direkt in der App, Einrichtung in sechs Schritten mit System-Check, Hell- und Dunkelmodus nach System, Live-Diagnose (FPS, Bitrate, Ping, Verbindungsweg), Tray, Autostart und eine Notbremse auf <kbd>Strg</kbd> <kbd>Shift</kbd> <kbd>X</kbd>.
 
 ## Installieren
 

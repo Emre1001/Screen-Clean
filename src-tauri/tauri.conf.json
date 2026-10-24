@@ -21,7 +21,6 @@
         "minHeight": 620,
         "center": true,
         "visible": false,
-        
         "backgroundThrottling": "disabled",
         "dragDropEnabled": false
       }
@@ -45,8 +44,25 @@
       "icons/icon.ico"
     ],
     "linux": {
-      "deb": { "depends": ["libayatana-appindicator3-1"], "section": "net" },
-      "rpm": { "depends": ["libayatana-appindicator-gtk3"] }
+      "deb": {
+        "depends": [
+          "libayatana-appindicator3-1"
+        ],
+        "section": "net"
+      },
+      "rpm": {
+        "depends": [
+          "libayatana-appindicator-gtk3"
+        ]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDg4MzQ5QjE5MzJDREZCOTgKUldTWSs4MHlHWnMwaUtSNWo3OURzc2IyZXZneHM1QXltS01SQVlvdjMxSnRzai9pM3VOYlZOOEgK",
+      "endpoints": [
+        "https://github.com/Emre1001/Screen-Clean/releases/latest/download/latest.json"
+      ]
     }
   }
 }

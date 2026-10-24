@@ -25,7 +25,7 @@ const webReady = isWeb
       let t = session('sc-token');
       if (!t) {
         const r = await fetch(`${webApi}/session`, { method: 'POST', headers: { 'x-boot': boot } });
-        if (!r.ok) throw new Error('Sitzung abgelaufen – über das Tray-Symbol neu öffnen.');
+        if (!r.ok) throw new Error(window.I18n?.t('browser.expired') || 'session expired');
         t = await r.json();
         try {
           sessionStorage.setItem('sc-token', t);
@@ -70,7 +70,7 @@ const mocks = {
     rect: { x: 0, y: 0, w: Math.round(screen.width * devicePixelRatio), h: Math.round(screen.height * devicePixelRatio) },
   }],
   input_check: () => 'browser',
-  discovery_status: () => { throw 'Nur in der Desktop-App'; },
+  discovery_status: () => { throw window.I18n.t('check.input.browser'); },
   overlay_show: () => false,
   autostart_get: () => false,
   autostart_set: () => false,

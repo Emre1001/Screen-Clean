@@ -1,6 +1,6 @@
 // Bedienelemente. Alle ändern ihren Zustand an Ort und Stelle (kein Neu-
 // Rendern), damit Übergänge sichtbar bleiben.
-import { h, icon, onColor } from '../lib/ui.js';
+import { h, icon, onColor, t } from '../lib/ui.js';
 import { PALETTE } from '../lib/store.js';
 
 export function toggle(checked, onchange, label) {
@@ -73,9 +73,9 @@ export function codeTiles(code, lg = false) {
   const tiles = [];
   for (let i = 0; i < 6; i++) {
     if (i === 3) el.append(h('span.sep'));
-    const t = h('span.tile', { style: { '--i': i } });
-    tiles.push(t);
-    el.append(t);
+    const tile = h('span.tile', { style: { '--i': i } });
+    tiles.push(tile);
+    el.append(tile);
   }
   el.set = (c, animate = true) => {
     el.setAttribute('aria-label', `Code ${c}`);
@@ -92,7 +92,7 @@ export function codeTiles(code, lg = false) {
 }
 
 export function swatches(value, onchange) {
-  const el = h('div.swatches', { role: 'radiogroup', 'aria-label': 'Cursor-Farbe' });
+  const el = h('div.swatches', { role: 'radiogroup', 'aria-label': t('profile.color') });
   const btns = PALETTE.map((c) => {
     const b = h('button.swatch', { type: 'button', style: { '--c': c }, 'aria-label': c, onclick: () => { select(c); onchange(c); } });
     el.append(b);
@@ -101,6 +101,67 @@ export function swatches(value, onchange) {
   const select = (v) => btns.forEach(([c, b]) => b.classList.toggle('on', c === v));
   select(value);
   return el;
+}
+
+/**
+ * Ebene für fremde Cursor. Positionen kommen in Sprüngen übers Netz (~60/s);
+ * jeder Frame gleitet ein Stück zum Ziel – wirkt flüssig, kostet kaum Latenz.
+ * sync([{ id, x, y, name, color }]) mit x/y normalisiert (0..1).
+ */
+export function cursorLayer(layer) {
+  const items = new Map();
+  let w = layer.clientWidth;
+  let hh = layer.clientHeight;
+  let raf = 0;
+  const kick = () => (raf ||= requestAnimationFrame(frame));
+  function frame() {
+    raf = 0;
+    let moving = false;
+    for (const it of items.values()) {
+      const dx = it.tx - it.x;
+      const dy = it.ty - it.y;
+      if (Math.abs(dx) + Math.abs(dy) > 0.0004) {
+        it.x += dx * 0.5;
+        it.y += dy * 0.5;
+        moving = true;
+      } else {
+        it.x = it.tx;
+        it.y = it.ty;
+      }
+      it.el.style.transform = `translate3d(${it.x * w}px, ${it.y * hh}px, 0)`;
+    }
+    if (moving) kick();
+  }
+  new ResizeObserver(() => {
+    w = layer.clientWidth;
+    hh = layer.clientHeight;
+    kick();
+  }).observe(layer);
+  return {
+    sync(list) {
+      const seen = new Set();
+      for (const c of list) {
+        seen.add(c.id);
+        const key = `${c.name}${c.color}`;
+        let it = items.get(c.id);
+        if (!it || it.key !== key) {
+          it?.el.remove();
+          it = { el: cursorEl(c.name, c.color), key, x: c.x, y: c.y };
+          layer.append(it.el);
+          items.set(c.id, it);
+        }
+        it.tx = c.x;
+        it.ty = c.y;
+      }
+      for (const [id, it] of items) {
+        if (!seen.has(id)) {
+          it.el.remove();
+          items.delete(id);
+        }
+      }
+      kick();
+    },
+  };
 }
 
 /** Farbiger Cursor mit Namens-Label – identisch in Stage, Overlay und Website. */

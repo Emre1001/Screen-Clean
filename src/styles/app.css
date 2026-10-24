@@ -870,6 +870,28 @@ kbd {
   font-size: 14px;
 }
 
+/* Theme-Wechsel als Kreis aus dem geklickten Element. Übergänge einfrieren,
+   sonst wird der neue Schnappschuss mit halb verblassten Farben aufgenommen. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+.theme-reveal::view-transition-old(root),
+.theme-reveal::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+.theme-reveal::view-transition-old(root) {
+  z-index: 1;
+}
+.theme-reveal::view-transition-new(root) {
+  z-index: 2;
+}
+.theme-reveal .content {
+  view-transition-name: none;
+}
+
 ::view-transition-old(content) {
   animation: vt-out 160ms var(--ease-in) both;
 }
@@ -1568,8 +1590,10 @@ kbd {
   position: absolute;
   pointer-events: none;
 }
-.session.controlling .stage {
-  cursor: crosshair;
+.session.controlling .stage,
+.session.idle.controlling .stage {
+  /* Beim Steuern zeigt das Video den echten Mauszeiger – lokal nur ein feines Fadenkreuz */
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath d='M12 3v6M12 15v6M3 12h6M15 12h6' stroke='%23000' stroke-opacity='.55' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M12 3v6M12 15v6M3 12h6M15 12h6' stroke='%23fff' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, crosshair;
 }
 .session.controlling .stage::after {
   content: '';
@@ -1775,9 +1799,6 @@ kbd {
 }
 .session.idle .stage {
   cursor: none;
-}
-.session.idle.controlling .stage {
-  cursor: crosshair;
 }
 .badge-wrap {
   position: relative;

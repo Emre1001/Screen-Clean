@@ -2,6 +2,7 @@ mod config;
 mod discovery;
 mod input;
 mod log;
+mod update;
 mod web;
 
 use serde::Serialize;
@@ -17,13 +18,13 @@ use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_window_state::StateFlags;
 
 static CLOSE_TO_TRAY: AtomicBool = AtomicBool::new(true);
-static READY: AtomicBool = AtomicBool::new(false);
+pub(crate) static READY: AtomicBool = AtomicBool::new(false);
 static START_HIDDEN: AtomicBool = AtomicBool::new(false);
 
 fn show_main(app: &AppHandle) {
     let web = app.state::<web::Web>();
     if web.running() {
-        return web.open(app);
+        return web.open();
     }
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
@@ -234,6 +235,9 @@ pub(crate) fn dispatch(app: &AppHandle, cmd: &str, a: Value) -> Result<Value, St
         "app_ready" => json!(app_ready(app.clone())),
         "log_write" => json!(log::log_write(de(a, "level")?, de(a, "msg")?)),
         "log_open" => json!(log::log_open(app.clone())?),
+        "update_check" => tauri::async_runtime::block_on(update::update_check(app.clone()))?,
+        "update_install" => json!(tauri::async_runtime::block_on(update::update_install(app.clone()))?),
+        "tray_labels" => json!(tray_labels(app.clone(), de(a, "show")?, de(a, "stop")?, de(a, "quit")?)),
         "emit_to" => {
             let target: String = de(a, "target")?;
             let event: String = de(a, "event")?;
@@ -283,12 +287,25 @@ fn enable_linux_media(win: &tauri::WebviewWindow) {
     });
 }
 
+/// Menüeinträge des Trays – die Oberfläche setzt sie in der gewählten Sprache.
+struct TrayItems([MenuItem<tauri::Wry>; 3]);
+
+#[tauri::command]
+fn tray_labels(app: AppHandle, show: String, stop: String, quit: String) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        for (item, text) in items.0.iter().zip([show, stop, quit]) {
+            let _ = item.set_text(text);
+        }
+    }
+}
+
 fn build_tray(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Screen-Clean öffnen", true, None::<&str>)?;
     let stop = MenuItem::with_id(app, "stop", "Stopp / Trennen  (Strg+Shift+X)", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Beenden", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &stop, &sep, &quit])?;
+    app.manage(TrayItems([show.clone(), stop.clone(), quit.clone()]));
     TrayIconBuilder::with_id("main")
         .icon(app.default_window_icon().cloned().expect("icon"))
         .tooltip("Screen-Clean")
@@ -319,6 +336,7 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, Some(vec!["--minimized"])))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_window_state::Builder::new()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
@@ -342,6 +360,7 @@ pub fn run() {
         .manage(input::InputState::spawn())
         .manage(discovery::Discovery::default())
         .manage(web::Web::default())
+        .manage(update::Pending::default())
         .setup(move |app| {
             log::write("info", &format!("Screen-Clean {} startet ({})", env!("CARGO_PKG_VERSION"), std::env::consts::OS));
             for sc in ["alt+shift+s", "ctrl+shift+x"] {
@@ -356,7 +375,7 @@ pub fn run() {
             // Sicherheitsnetz: meldet sich die Oberfläche nicht, trotzdem anzeigen
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_secs(4));
+                std::thread::sleep(std::time::Duration::from_secs(10));
                 let web = handle.state::<web::Web>().running();
                 if !READY.swap(true, Ordering::SeqCst) && !START_HIDDEN.load(Ordering::SeqCst) && !web {
                     log::write("warn", "Oberfläche hat sich nicht gemeldet – Fenster trotzdem anzeigen");
@@ -399,6 +418,9 @@ pub fn run() {
             app_ready,
             log::log_write,
             log::log_open,
+            update::update_check,
+            update::update_install,
+            tray_labels,
             web::web_start,
         ])
         .run(tauri::generate_context!())

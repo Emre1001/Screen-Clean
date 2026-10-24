@@ -31,10 +31,11 @@ impl Web {
         self.ctx.lock().unwrap().is_some()
     }
 
-    /// Neues Browser-Fenster mit frischem Einmal-Token öffnen.
-    pub fn open(&self, app: &AppHandle) {
+    /// Fenster nach vorn holen – oder öffnen, falls keins verbunden ist.
+    /// Nie ein zweites: doppelte Fenster hätten denselben Code und stören sich.
+    pub fn open(&self) {
         if let Some(ctx) = self.ctx.lock().unwrap().as_ref() {
-            open_browser(app, &ctx.url());
+            ctx.show();
         }
     }
 }
@@ -50,6 +51,15 @@ struct Ctx {
 }
 
 impl Ctx {
+    fn show(&self) {
+        let mut clients = self.clients.lock().unwrap();
+        clients.retain_mut(|s| s.write_all(b"event: app:focus\ndata: null\n\n").is_ok());
+        if clients.is_empty() {
+            drop(clients);
+            open_browser(&self.app, &self.url());
+        }
+    }
+
     fn url(&self) -> String {
         let boot = token();
         self.boot.lock().unwrap().push(boot.clone());
@@ -81,7 +91,18 @@ fn open_browser(app: &AppHandle, url: &str) {
     let profile = dirs::config_dir().map(|d| d.join(crate::config::IDENTIFIER).join("browser"));
     for bin in ["google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser", "microsoft-edge", "vivaldi"] {
         let mut c = std::process::Command::new(bin);
-        c.args([&format!("--app={url}"), "--window-size=1200,800", "--no-first-run", "--no-default-browser-check"]);
+        c.args([
+            &format!("--app={url}"),
+            "--window-size=1200,800",
+            "--no-first-run",
+            "--no-default-browser-check",
+            // gleiche WM_CLASS wie die App: Taskleiste zeigt unser Icon statt Chrome
+            "--class=screen-clean",
+            // Host im Hintergrund: Timer nicht drosseln, sonst ruckeln Cursor und Heartbeat
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding",
+            "--disable-backgrounding-occluded-windows",
+        ]);
         if let Some(p) = &profile {
             c.arg(format!("--user-data-dir={}", p.display()));
         }
@@ -94,9 +115,10 @@ fn open_browser(app: &AppHandle, url: &str) {
 
 #[tauri::command]
 pub fn web_start(app: AppHandle, state: tauri::State<Web>) -> Result<(), String> {
+    crate::READY.store(true, std::sync::atomic::Ordering::SeqCst);
     let mut cur = state.ctx.lock().unwrap();
     if let Some(ctx) = cur.as_ref() {
-        open_browser(&app, &ctx.url());
+        ctx.show();
         return Ok(());
     }
     let listener = TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;

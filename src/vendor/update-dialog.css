@@ -1,0 +1,108 @@
+/* Update popup. Uses the theme tokens from the skill:
+   --surface --inset --border --text --text-muted --accent --accent-contrast --ring --dur-fast --dur-base --ease-out */
+
+.upd-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(8 8 12 / 0.42);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.upd-overlay.is-open { opacity: 1; }
+
+.upd-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, 100%);
+  max-height: 100%;
+  padding: 22px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.08), 0 32px 64px -20px rgb(0 0 0 / 0.45);
+  opacity: 0;
+  transform: translateY(14px) scale(0.94);
+  transition: opacity 200ms var(--ease-out), transform 360ms var(--ease-out);
+}
+.upd-overlay.is-open .upd-card { opacity: 1; transform: none; }
+.upd-card [hidden] { display: none !important; }
+
+.upd-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  color: var(--accent);
+  background: var(--inset);
+  border-radius: 14px;
+}
+.upd-title { margin: 4px 0 0; font-size: 20px; font-weight: 650; letter-spacing: -0.012em; line-height: 1.25; }
+.upd-body { margin: 0; color: var(--text-muted); }
+
+.upd-notes { display: grid; gap: 6px; min-height: 0; }
+.upd-notes-label { font-size: 12.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--text-muted); }
+.upd-notes-text {
+  max-height: 160px;
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  background: var(--inset);
+  border-radius: 12px;
+}
+
+.upd-progress { display: grid; gap: 8px; }
+.upd-track { height: 6px; overflow: hidden; background: var(--inset); border-radius: 999px; }
+.upd-bar {
+  width: 100%;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  transition: transform 200ms linear;
+}
+[dir="rtl"] .upd-bar { transform-origin: right center; }
+.upd-percent { min-height: 1.2em; font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.upd-progress.is-indeterminate .upd-bar {
+  width: 38%;
+  transform: none;
+  transition: none;
+  animation: upd-slide 1.3s var(--ease-out) infinite;
+}
+@keyframes upd-slide { from { transform: translateX(-100%); } to { transform: translateX(270%); } }
+
+/* Two equal buttons side by side, the quiet "skip" action on its own row below.
+   Grid keeps this stable for long German and Turkish labels and wraps to one column on tiny screens. */
+.upd-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-top: 6px; }
+.upd-btn {
+  min-height: 44px;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out),
+              background-color var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out),
+              color var(--dur-fast) var(--ease-out);
+}
+.upd-btn:hover { transform: translateY(-1px); }
+.upd-btn:active { transform: translateY(0) scale(0.97); }
+.upd-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.upd-btn--primary { color: var(--accent-contrast); background: var(--accent); box-shadow: 0 6px 16px -8px var(--accent); }
+.upd-btn--primary:hover { box-shadow: 0 10px 22px -8px var(--accent); }
+.upd-btn--secondary { color: var(--text); background: var(--inset); }
+.upd-btn--ghost { grid-column: 1 / -1; color: var(--text-muted); background: transparent; }
+.upd-btn--ghost:hover { color: var(--text); background: var(--inset); }

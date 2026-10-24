@@ -25,8 +25,7 @@ class Host {
   monitor = null;
   overlayInCapture = false;
   chat = [];
-  cursorTimer = null;
-  cursorSent = 0;
+  cursorQueued = false;
   ticks = 0;
 
   constructor() {
@@ -67,13 +66,6 @@ class Host {
       case 'i':
         if (this.controller !== v.id || !Array.isArray(m.e)) break;
         call('input_send', { events: m.e.slice(0, 256) }).catch(() => {});
-        {
-          const mv = m.e.findLast((e) => e?.k === 'move');
-          if (mv && unit(mv.x) && unit(mv.y)) {
-            v.cursor = { x: mv.x, y: mv.y };
-            this.queueCursors();
-          }
-        }
         break;
       case 'chat': {
         const text = clean(m.text, 1000);
@@ -111,14 +103,14 @@ class Host {
     const rejoin = req.clientId && Date.now() - (this.recent.get(req.clientId) || 0) < REJOIN_MS;
     if (rejoin || policy === 'auto' || friend?.trusted) return this.accept(req);
     if (policy === 'friends' && !friend) {
-      conn.send({ t: 'denied', reason: 'Dieser Host lässt nur Freunde beitreten.' });
+      conn.send({ t: 'denied', code: 'friendsOnly' });
       setTimeout(() => conn.close(), 300);
       return;
     }
     conn.send({ t: 'pending' });
     const old = this.pending.get(req.id);
     if (old) clearTimeout(old.timer);
-    req.timer = setTimeout(() => this.deny(req.id, 'Der Host hat nicht reagiert.'), 60_000);
+    req.timer = setTimeout(() => this.deny(req.id, 'noAnswer'), 60_000);
     this.pending.set(req.id, req);
     log(`Beitrittsanfrage von ${req.name}`);
     emit('host:request', req);
@@ -158,12 +150,13 @@ class Host {
     else emit('host:need-share');
   }
 
-  deny(id, reason = 'Der Host hat abgelehnt.') {
+  /** code: Grund als Schlüssel – der Zuschauer übersetzt ihn in seine Sprache. */
+  deny(id, code = 'declined') {
     const p = this.pending.get(id);
     if (!p) return;
     clearTimeout(p.timer);
     this.pending.delete(id);
-    p.conn.send({ t: 'denied', reason });
+    p.conn.send({ t: 'denied', code });
     setTimeout(() => p.conn.close(), 300);
     emit('host:changed');
   }
@@ -337,18 +330,18 @@ class Host {
   // --- Steuerung -----------------------------------------------------------
   onControlRequest(v) {
     if (this.controller === v.id) return;
-    const no = (reason) => v.conn.send({ t: 'control', granted: false, reason });
-    if (!this.stream || this.paused) return no('Der Host teilt gerade nicht.');
-    if (this.shareKind !== 'monitor') return no('Steuerung geht nur, wenn ein ganzer Bildschirm geteilt wird.');
+    const no = (code) => v.conn.send({ t: 'control', granted: false, code });
+    if (!this.stream || this.paused) return no('notSharing');
+    if (this.shareKind !== 'monitor') return no('windowShare');
     const policy = cfg.settings.controlPolicy;
-    if (policy === 'deny') return no('Der Host hat Fernsteuerung deaktiviert.');
+    if (policy === 'deny') return no('controlOff');
     if (policy === 'auto') return this.setController(v.id);
     v.conn.send({ t: 'control', pending: true });
     emit('host:control-request', v);
   }
 
   denyControl(id) {
-    this.viewers.get(id)?.conn.send({ t: 'control', granted: false, reason: 'Der Host hat die Anfrage abgelehnt.' });
+    this.viewers.get(id)?.conn.send({ t: 'control', granted: false, code: 'controlDeclined' });
   }
 
   setController(id) {
@@ -364,26 +357,34 @@ class Host {
       log(`${v.name} steuert jetzt`);
     }
     this.broadcastParticipants();
-    this.updateOverlay();
+    this.queueCursors();
   }
 
   // --- Cursor, Chat, Reaktionen -------------------------------------------
+  /**
+   * Cursor sofort weiterreichen – gebündelt pro Microtask, ohne Timer
+   * (Timer werden in Hintergrund-Fenstern gedrosselt und ruckeln dann).
+   * Wer steuert, bekommt keinen Farb-Cursor: sein Zeiger ist der echte Mauszeiger.
+   */
   queueCursors() {
-    if (this.cursorTimer) return;
-    const wait = Math.max(0, 33 - (performance.now() - this.cursorSent));
-    this.cursorTimer = setTimeout(() => {
-      this.cursorTimer = null;
-      this.cursorSent = performance.now();
-      const l = [...this.viewers.values()].filter((v) => v.cursor).map((v) => [v.id, +v.cursor.x.toFixed(4), +v.cursor.y.toFixed(4)]);
+    if (this.cursorQueued) return;
+    this.cursorQueued = true;
+    queueMicrotask(() => {
+      this.cursorQueued = false;
+      const l = this.visibleCursors().map((v) => [v.id, +v.cursor.x.toFixed(4), +v.cursor.y.toFixed(4)]);
       this.broadcast({ t: 'cursors', l });
       this.updateOverlay();
-    }, wait);
+    });
+  }
+
+  visibleCursors() {
+    return [...this.viewers.values()].filter((v) => v.cursor && v.id !== this.controller);
   }
 
   updateOverlay() {
     if (!this.stream) return;
     const cursors = cfg.settings.remoteCursors
-      ? [...this.viewers.values()].filter((v) => v.cursor).map((v) => ({ id: v.id, name: v.name, color: v.color, x: v.cursor.x, y: v.cursor.y, ctl: this.controller === v.id }))
+      ? this.visibleCursors().map((v) => ({ id: v.id, name: v.name, color: v.color, x: v.cursor.x, y: v.cursor.y }))
       : [];
     const ctl = this.viewers.get(this.controller);
     emitTo('overlay', 'overlay:state', { cursors, controller: ctl ? { name: ctl.name, color: ctl.color } : null, paused: this.paused });
@@ -429,7 +430,7 @@ class Host {
     }
     if (++this.ticks % 3 === 0 && this.viewers.size) this.broadcastParticipants();
     const n = this.viewers.size;
-    call('tray_status', { text: this.stream ? `Screen-Clean – teilt mit ${n} ${n === 1 ? 'Person' : 'Personen'}` : 'Screen-Clean' }).catch(() => {});
+    call('tray_status', { text: this.stream ? `Screen-Clean – ${window.I18n.t('tray.sharing', { count: n })}` : 'Screen-Clean' }).catch(() => {});
   }
 
   onSetting(key) {

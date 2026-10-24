@@ -34,7 +34,7 @@ class Viewer {
   constructor() {
     net.handlers.call = (c) => this.onCall(c);
     net.handlers.peerUnavailable = (e) => {
-      if (this.code && e.message?.includes(toPeerId(this.code))) this.lost('Host ist offline');
+      if (this.code && e.message?.includes(toPeerId(this.code))) this.lost('reason.hostOffline');
     };
     setInterval(() => this.pollStats(), 1000);
   }
@@ -50,8 +50,8 @@ class Viewer {
   }
 
   join(code) {
-    if (code === cfg.code) return 'Das ist dein eigener Code 🙂';
-    if (net.state !== 'online') return 'Noch nicht mit dem Server verbunden – einen Moment.';
+    if (code === cfg.code) return 'join.ownCode';
+    if (net.state !== 'online') return 'join.notOnline';
     this.leave();
     Object.assign(this, { code, attempt: 0, chat: [], list: [], host: null, endReason: '' });
     this.setState('connecting');
@@ -63,16 +63,16 @@ class Viewer {
   connect() {
     clearTimeout(this.timers.open);
     const conn = net.peer.connect(toPeerId(this.code), { reliable: true, serialization: 'json', metadata: { v: 1 } });
-    if (!conn) return this.lost('Signaling nicht bereit');
+    if (!conn) return this.lost('reason.signaling');
     this.conn = conn;
     conn.on('open', () => {
       if (this.conn !== conn) return;
       conn.send({ t: 'hello', name: cfg.profile.name, color: cfg.profile.color, clientId: cfg.clientId });
     });
     conn.on('data', (m) => this.conn === conn && m && typeof m === 'object' && this.onData(m));
-    conn.on('close', () => this.conn === conn && this.lost('Verbindung geschlossen'));
+    conn.on('close', () => this.conn === conn && this.lost('reason.closed'));
     conn.on('error', (e) => this.conn === conn && this.lost(e.message));
-    this.timers.open = setTimeout(() => this.conn === conn && !conn.open && this.lost('Zeitüberschreitung'), 15_000);
+    this.timers.open = setTimeout(() => this.conn === conn && !conn.open && this.lost('reason.timeout'), 15_000);
   }
 
   onData(m) {
@@ -90,13 +90,13 @@ class Viewer {
         if (cfg.settings.autoRequestControl) setTimeout(() => this.requestControl(), 1000);
         break;
       case 'denied':
-        this.end(m.reason || 'Der Host hat abgelehnt.');
+        this.end(`reason.${m.code || 'declined'}`);
         break;
       case 'kick':
-        this.end('Du wurdest vom Host entfernt.');
+        this.end('reason.kicked');
         break;
       case 'host-stop':
-        this.end('Der Host hat die Session beendet.');
+        this.end('reason.hostStopped');
         break;
       case 'participants':
         this.host = m.host;
@@ -120,7 +120,7 @@ class Viewer {
       case 'control':
         this.ctlPending = !!m.pending;
         if (!m.pending) this.controlling = !!m.granted;
-        if (m.reason) emit('viewer:notice', m.reason);
+        if (m.code) emit('viewer:notice', `reason.${m.code}`);
         emit('viewer:control');
         break;
       case 'share':
@@ -167,7 +167,7 @@ class Viewer {
     this.timers.hb = setInterval(() => {
       if (!this.conn?.open) return;
       this.conn.send({ t: 'ping', ts: performance.now(), rtt: this.rtt });
-      if (performance.now() - this.lastPong > 10_000) this.lost('Keine Antwort vom Host');
+      if (performance.now() - this.lastPong > 10_000) this.lost('reason.noPong');
     }, 2000);
   }
 
@@ -180,10 +180,10 @@ class Viewer {
       const ms = Math.min(15_000, 1000 * 2 ** this.attempt++);
       log(`Verbindung verloren (${reason}) – Versuch ${this.attempt} in ${ms / 1000}s`, 'warn');
       this.setState('reconnecting', { reason, attempt: this.attempt, max: MAX_ATTEMPTS, at: Date.now() + ms });
-      this.timers.retry = setTimeout(() => (net.state === 'online' ? this.connect() : this.lost('Server nicht erreichbar')), ms);
+      this.timers.retry = setTimeout(() => (net.state === 'online' ? this.connect() : this.lost('reason.server')), ms);
       return;
     }
-    this.end(wasLive ? `Verbindung verloren: ${reason}` : `Verbindung fehlgeschlagen: ${reason}`);
+    this.end(wasLive ? 'reason.lost' : 'reason.failed', reason);
   }
 
   retryNow() {
@@ -207,10 +207,11 @@ class Viewer {
     emit('viewer:stream', null);
   }
 
-  end(reason) {
+  /** reason: Schlüssel aus den Sprachdateien, detail: optionaler Unter-Grund. */
+  end(reason, detail) {
     this.cleanup();
     log(reason, 'warn');
-    this.setState('ended', { reason });
+    this.setState('ended', { reason, detail });
   }
 
   leave() {
@@ -226,13 +227,14 @@ class Viewer {
   }
 
   // --- Cursor & Eingaben ---------------------------------------------------
+  /** Eigene Position an alle – einmal pro Frame, nicht während man steuert. */
   cursor(x, y) {
+    if (this.controlling) return;
     this.nextCursor = { x, y };
-    if (this.timers.cursor) return;
-    this.timers.cursor = setTimeout(() => {
-      this.timers.cursor = null;
+    this.timers.cursor ||= requestAnimationFrame(() => {
+      this.timers.cursor = 0;
       this.send({ t: 'c', ...this.nextCursor });
-    }, 33);
+    });
   }
 
   input(ev) {
