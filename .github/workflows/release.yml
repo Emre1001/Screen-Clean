@@ -1,4 +1,4 @@
-# Tag pushen (z. B. v0.1.1) oder manuell starten → Installer für Windows & Linux als Build-Artefakte.
+# Tag pushen (z. B. v0.1.2) oder manuell starten → Installer für Windows & Linux als Build-Artefakte.
 # Mit dem Secret TAURI_SIGNING_PRIVATE_KEY entstehen zusätzlich signierte Update-Dateien
 # und ein latest.json für das In-App-Update.
 name: Release

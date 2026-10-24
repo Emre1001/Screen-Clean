@@ -47,14 +47,23 @@ kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; 
 .icon-btn:hover { background: var(--fill-2); color: var(--text-1); }
 .icon-btn:active { transform: scale(0.9); }
 
+/* Erscheinungsbild: Kreis wächst aus dem Knopf. Übergänge einfrieren, sonst wird das neue Bild halb überblendet aufgenommen. */
+.theme-switching *, .theme-switching *::before, .theme-switching *::after { transition: none !important; }
+.theme-reveal::view-transition-old(root), .theme-reveal::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+.theme-reveal::view-transition-old(root) { z-index: 1; }
+.theme-reveal::view-transition-new(root) { z-index: 2; }
+#theme svg { animation: icon-in var(--slow) var(--spring); }
+@keyframes icon-in { from { opacity: 0; transform: rotate(-80deg) scale(0.5); } }
+
 /* Navigation */
-nav { position: sticky; top: 0; z-index: 50; background: var(--material); backdrop-filter: blur(24px) saturate(1.6); border-bottom: 1px solid var(--sep); }
+nav { position: sticky; top: 0; z-index: 50; background: var(--material); backdrop-filter: blur(24px) saturate(1.6); border-bottom: 1px solid transparent; transition: border-color var(--med) var(--ease); }
+nav.scrolled { border-bottom-color: var(--sep); }
 nav .wrap { display: flex; align-items: center; gap: 28px; height: 56px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px; letter-spacing: -0.02em; }
 .brand img { border-radius: 7px; }
 .nav-links { display: flex; gap: 26px; margin-left: auto; font-size: 14px; color: var(--text-2); }
 .nav-links a { transition: color var(--fast); }
-.nav-links a:hover { color: var(--text-1); }
+.nav-links a:hover, .nav-links a[aria-current] { color: var(--text-1); }
 
 /* Hero */
 .hero { padding: 96px 0 0; text-align: center; }
@@ -75,10 +84,21 @@ nav .wrap { display: flex; align-items: center; gap: 28px; height: 56px; }
 .titlebar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--sep); }
 .titlebar i { width: 11px; height: 11px; border-radius: 50%; background: var(--fill-3); }
 .titlebar span { margin: 0 auto; font-size: 12.5px; font-weight: 550; color: var(--text-2); transform: translateX(-24px); }
-.stage { position: relative; height: clamp(420px, 50vw, 600px); overflow: hidden; background: #0b0c10; color: #f4f4f5; cursor: none; user-select: none; touch-action: none; }
+.stage { position: relative; height: clamp(420px, 50vw, 600px); overflow: hidden; background: #0b0c10; color: #f4f4f5; cursor: none; user-select: none; touch-action: pan-y; }
+.shot:fullscreen { display: flex; flex-direction: column; border-radius: 0; }
+.shot:fullscreen .stage { flex: 1; height: auto; }
 .desk { position: absolute; inset: 0; background: radial-gradient(1200px 600px at 20% 0%, #24263a 0%, transparent 60%), linear-gradient(160deg, #1a1c26, #0d0e13); }
 .stage.ctl { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--amber) 75%, transparent); }
-.win { position: absolute; border-radius: 12px; background: #16171f; box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.7), inset 0 0 0 1px rgb(255 255 255 / 0.07); transition: box-shadow var(--med); }
+.stage.ctl .wt { touch-action: none; }
+.win { position: absolute; border-radius: 12px; background: #16171f; box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.7), inset 0 0 0 1px rgb(255 255 255 / 0.07); transition: box-shadow var(--med), filter var(--slow) var(--ease), opacity var(--slow) var(--ease); }
+.w1 { left: 6%; top: 17%; width: 46%; }
+.w2 { left: 44%; top: 46%; width: 29%; }
+.stage.lost .win, .stage.lost .rcursor { filter: blur(5px) grayscale(0.7); opacity: 0.45; }
+.reconnect { position: absolute; top: 50%; left: 50%; z-index: 8; display: flex; align-items: center; gap: 10px; padding: 11px 18px 11px 14px; border-radius: 14px; font-size: 14px; font-weight: 550; white-space: nowrap; opacity: 0; transform: translate(-50%, -50%) scale(0.94); transition: opacity var(--med), transform var(--slow) var(--spring); pointer-events: none; }
+.reconnect.on { opacity: 1; transform: translate(-50%, -50%); }
+.reconnect .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgb(255 255 255 / 0.2); border-top-color: var(--amber); animation: spin 0.8s linear infinite; }
+.reconnect.ok .spin { border-color: var(--green); animation: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .win .wt { height: 32px; display: flex; align-items: center; gap: 7px; padding: 0 12px; font-size: 12px; color: #8b8d98; border-bottom: 1px solid rgb(255 255 255 / 0.06); }
 .win .wt b { width: 9px; height: 9px; border-radius: 50%; background: rgb(255 255 255 / 0.12); }
 .stage.ctl .wt { cursor: grab; }
@@ -134,7 +154,7 @@ section { padding: 140px 0 0; }
 .lead { font-size: 19px; color: var(--text-2); max-width: 620px; }
 .center { text-align: center; }
 .center .lead { margin: 0 auto; }
-.reveal { opacity: 0; transform: translateY(28px); transition: opacity 900ms var(--ease), transform 900ms var(--ease); }
+.reveal { opacity: 0; transform: translateY(20px); transition: opacity 700ms var(--ease), transform 700ms var(--ease); }
 .reveal.in { opacity: 1; transform: none; }
 
 .tiles-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-top: 56px; }
@@ -211,6 +231,10 @@ footer a:hover { color: var(--text-1); }
   nav .theme { margin-left: auto; }
   .tile, .tile.third, .tile.wide { grid-column: span 6; min-height: 0; }
   .panel { display: none; }
+  .w1 { left: 4%; top: 16%; width: 80%; }
+  .w1 .code { font-size: 11px; }
+  .w2 { left: 30%; top: 44%; width: 64%; }
+  .chart { height: 80px; }
   .spec { grid-template-columns: 1fr; gap: 4px; }
   section { padding-top: 100px; }
   .cap { min-width: 74px; height: 70px; font-size: 18px; border-radius: 16px; }
@@ -236,7 +260,7 @@ footer a:hover { color: var(--text-1); }
 
 <header class="hero">
   <div class="wrap">
-    <span class="eyebrow"><b>Version 0.1.1</b> · Kostenlos und Open Source</span>
+    <span class="eyebrow"><b>Version 0.1.2</b> · Kostenlos und Open Source</span>
     <h1>Gemeinsam an einem Bildschirm.</h1>
     <p class="sub">Screen-Clean verbindet Computer direkt miteinander. Jeder sieht die Cursor der anderen, und wer darf, steuert mit – ohne Konto, ohne Cloud.</p>
     <div class="cta">
@@ -251,7 +275,7 @@ footer a:hover { color: var(--text-1); }
       <div class="titlebar"><i></i><i></i><i></i><span>Screen-Clean</span></div>
       <div class="stage" id="stage" aria-label="Interaktive Vorschau der Zuschau-Ansicht">
         <div class="desk"></div>
-        <div class="win" style="left:6%;top:17%;width:46%">
+        <div class="win w1">
           <div class="wt"><b></b>share.rs</div>
           <div class="code"><span class="k">fn</span> <span class="f">share</span>(screen: &amp;Screen) {
     <span class="k">let</span> peers = p2p::connect(<span class="s">"K7P-29Q"</span>);
@@ -260,22 +284,22 @@ footer a:hover { color: var(--text-1); }
     cursors.<span class="f">show_all</span>();
 }</div>
         </div>
-        <div class="win" style="left:44%;top:46%;width:29%">
+        <div class="win w2">
           <div class="wt"><b></b>Besucher · Woche</div>
           <div class="chart" id="chart"><span></span><span></span><span></span><span></span><span class="hi"></span><span></span><span></span></div>
           <span class="deploy hot" data-hot>Veröffentlichen</span>
         </div>
         <div class="chip-top glass"><span class="av" style="--c:#3e63dd">E</span><div><b>Emre</b><small id="stat">120 FPS · 9 ms</small></div></div>
         <div class="banner glass">Du steuerst · zieh ein Fenster an der Titelleiste</div>
+        <div class="reconnect glass" id="reconnect" role="status"><span class="spin"></span><span></span></div>
         <div class="dock glass">
           <button class="btn" id="ctl" type="button"><i data-lucide="gamepad-2" class="i"></i><span>Steuern</span></button>
           <span class="div"></span>
-          <button class="icon-btn on" id="chatBtn" type="button" aria-label="Chat"><i data-lucide="message-circle" class="i"></i></button>
-          <button class="icon-btn hide-sm" type="button" aria-label="Personen"><i data-lucide="users" class="i"></i></button>
-          <button class="icon-btn hide-sm" type="button" aria-label="Diagnose"><i data-lucide="activity" class="i"></i></button>
-          <button class="icon-btn" type="button" aria-label="Vollbild"><i data-lucide="maximize" class="i"></i></button>
+          <button class="icon-btn on hide-sm" id="chatBtn" type="button" aria-label="Chat" aria-pressed="true"><i data-lucide="message-circle" class="i"></i></button>
+          <button class="icon-btn hide-sm" id="diagBtn" type="button" aria-label="Diagnose" aria-pressed="false"><i data-lucide="activity" class="i"></i></button>
+          <button class="icon-btn" id="fullBtn" type="button" aria-label="Vollbild"><i data-lucide="maximize" class="i"></i></button>
           <span class="div"></span>
-          <button class="icon-btn" type="button" aria-label="Trennen"><i data-lucide="log-out" class="i"></i></button>
+          <button class="icon-btn" id="leaveBtn" type="button" aria-label="Trennen"><i data-lucide="log-out" class="i"></i></button>
         </div>
         <aside class="panel glass" id="panel">
           <div class="panel-h">Chat <span class="people" id="people"></span></div>
@@ -285,7 +309,7 @@ footer a:hover { color: var(--text-1); }
         </aside>
       </div>
     </div>
-    <p class="hint">Fahr mit der Maus über die Vorschau – das bist du. Mit „Steuern“ verschiebst du Fenster.</p>
+    <p class="hint" id="hint">Fahr mit der Maus über die Vorschau – das bist du. Mit „Steuern“ verschiebst du Fenster.</p>
   </div>
 </header>
 
@@ -388,7 +412,7 @@ footer a:hover { color: var(--text-1); }
     <span>© 2026 Emre · MIT-Lizenz</span>
     <a data-repo href="#" target="_blank" rel="noopener">GitHub</a>
     <a data-releases href="#" target="_blank" rel="noopener">Versionen</a>
-    <span style="margin-left:auto">Screen-Clean 0.1.1</span>
+    <span style="margin-left:auto">Screen-Clean 0.1.2</span>
   </div>
 </footer>
 
@@ -408,20 +432,55 @@ footer a:hover { color: var(--text-1); }
   // --- Erscheinungsbild: System → Hell → Dunkel ------------------------------
   const THEMES = ['system', 'light', 'dark'];
   const THEME_ICON = { system: 'sun-moon', light: 'sun', dark: 'moon' };
+  const THEME_NAME = { system: 'System', light: 'Hell', dark: 'Dunkel' };
+  const root = document.documentElement;
+  const darkMq = matchMedia('(prefers-color-scheme: dark)');
   const themeBtn = $('#theme');
-  let theme = document.documentElement.dataset.theme || 'system';
+  const metas = $$('meta[name="theme-color"]').map((m) => [m, m.content]);
+  let theme = root.dataset.theme || 'system';
+  const isDark = (t) => (t === 'system' ? darkMq.matches : t === 'dark');
   const paintTheme = () => {
     themeBtn.innerHTML = `<i data-lucide="${THEME_ICON[theme]}" class="i"></i>`;
+    themeBtn.title = themeBtn.ariaLabel = `Erscheinungsbild: ${THEME_NAME[theme]}`;
+    // Browserleiste folgt der Wahl, nicht nur dem System
+    metas.forEach(([m, c]) => (m.content = theme === 'system' ? c : isDark(theme) ? '#0e0e10' : '#f3f3f4'));
     icons();
   };
   themeBtn.addEventListener('click', () => {
-    theme = THEMES[(THEMES.indexOf(theme) + 1) % 3];
-    if (theme === 'system') delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem('sc-theme', theme); } catch {}
-    paintTheme();
+    const next = THEMES[(THEMES.indexOf(theme) + 1) % 3];
+    const changes = isDark(next) !== isDark(theme);
+    const set = () => {
+      theme = next;
+      if (theme === 'system') delete root.dataset.theme;
+      else root.dataset.theme = theme;
+      paintTheme();
+    };
+    try { localStorage.setItem('sc-theme', next); } catch {}
+    if (!changes || reduced || !document.startViewTransition) { set(); return; }
+    const r = themeBtn.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = r.top + r.height / 2;
+    root.classList.add('theme-switching', 'theme-reveal');
+    const vt = document.startViewTransition(set);
+    vt.ready.then(() => root.animate(
+      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px at ${x}px ${y}px)`] },
+      { duration: 700, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', pseudoElement: '::view-transition-new(root)' },
+    ));
+    vt.finished.finally(() => root.classList.remove('theme-switching', 'theme-reveal'));
   });
   paintTheme();
+
+  // Navigation: Trennlinie erst beim Scrollen, aktiver Abschnitt hervorgehoben
+  const nav = $('nav');
+  const onScroll = () => nav.classList.toggle('scrolled', scrollY > 8);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+  const navIo = new IntersectionObserver((entries) => entries.forEach((e) => {
+    const a = $(`.nav-links a[href="#${e.target.id}"]`);
+    if (e.isIntersecting) $$('.nav-links a').forEach((l) => l.toggleAttribute('aria-current', l === a));
+    else a?.removeAttribute('aria-current');
+  }), { rootMargin: '-45% 0px -50% 0px' });
+  $$('#funktionen, #sicherheit, #daten').forEach((s) => navIo.observe(s));
 
   // --- Links & Betriebssystem -------------------------------------------------
   $$('[data-repo]').forEach((a) => (a.href = REPO));
@@ -502,21 +561,26 @@ footer a:hover { color: var(--text-1); }
     const s = stage.getBoundingClientRect();
     return [r.left - s.left + r.width * rnd(0.3, 0.7), r.top - s.top + r.height * rnd(0.3, 0.7)];
   };
-  const bots = PEOPLE.map((p) => ({ ...p, el: cursor(p.name, p.color, stage), x: rnd(150, 500), y: rnd(120, 360), tx: 0, ty: 0, vx: 0, vy: 0, wait: rnd(0, 1500), target: null }));
+  const bots = PEOPLE.map((p) => ({ ...p, el: cursor(p.name, p.color, stage), x: rnd(40, Math.min(500, stage.clientWidth - 80)), y: rnd(120, 360), tx: 0, ty: 0, vx: 0, vy: 0, wait: rnd(0, 1500), target: null }));
   bots.forEach((b) => (b.el.style.transition = 'none'));
+  const panel = $('#panel');
   function retarget(b) {
     if (Math.random() < 0.65) {
       b.target = pick($$('[data-hot], .code, .chart', stage));
       [b.tx, b.ty] = pointIn(b.target);
     } else {
+      // nicht unter den Chat und nicht aus dem Bild (schmale Bildschirme)
+      const right = panel.offsetParent && !panel.classList.contains('closed') ? 360 : 90;
       b.target = null;
-      b.tx = rnd(60, stage.clientWidth - 360);
+      b.tx = rnd(30, Math.max(60, stage.clientWidth - right));
       b.ty = rnd(90, stage.clientHeight - 110);
     }
   }
   bots.forEach(retarget);
   let last = performance.now();
+  let running = false;
   function tick(now) {
+    if (!running) return;
     const dt = Math.min(40, now - last) / 16.7;
     last = now;
     for (const b of bots) {
@@ -544,7 +608,12 @@ footer a:hover { color: var(--text-1); }
     requestAnimationFrame(tick);
   }
   bots.forEach((b) => { b.el.style.left = `${b.x}px`; b.el.style.top = `${b.y}px`; });
-  if (!reduced) requestAnimationFrame(tick);
+  // Nur animieren, solange die Vorschau zu sehen ist
+  if (!reduced) new IntersectionObserver(([e]) => {
+    if (e.isIntersecting === running) return;
+    running = e.isIntersecting;
+    if (running) { last = performance.now(); requestAnimationFrame(tick); }
+  }).observe(stage);
 
   // Dein eigener Cursor
   const me = cursor('Du', ME.color, stage);
@@ -564,10 +633,13 @@ footer a:hover { color: var(--text-1); }
     me.style.left = `${x}px`;
     me.style.top = `${y}px`;
     if (drag) {
-      drag.win.style.left = `${x - drag.ox}px`;
-      drag.win.style.top = `${y - drag.oy}px`;
+      // Titelleiste bleibt immer greifbar
+      const w = drag.win.offsetWidth;
+      drag.win.style.left = `${Math.min(Math.max(x - drag.ox, 60 - w), stage.clientWidth - 60)}px`;
+      drag.win.style.top = `${Math.min(Math.max(y - drag.oy, 0), stage.clientHeight - 40)}px`;
     }
   });
+  if (matchMedia('(hover: none)').matches) $('#hint').textContent = 'Tipp auf „Steuern“ und zieh ein Fenster an der Titelleiste.';
   stage.addEventListener('pointerleave', () => (me.style.opacity = 0));
   stage.addEventListener('pointerdown', (e) => {
     if (e.target.closest('.glass')) return;
@@ -603,9 +675,45 @@ footer a:hover { color: var(--text-1); }
     setControl(on);
     if (on) setTimeout(() => say(PEOPLE[0], 'Du hast jetzt die Maus 👀'), 700);
   });
+  const toggleBtn = (b) => b.setAttribute('aria-pressed', b.classList.toggle('on'));
   $('#chatBtn').addEventListener('click', (e) => {
-    $('#panel').classList.toggle('closed');
-    e.currentTarget.classList.toggle('on');
+    panel.classList.toggle('closed');
+    toggleBtn(e.currentTarget);
+  });
+  let diag = false;
+  const paintStat = () => {
+    const fps = Math.round(rnd(117, 121));
+    const ms = Math.round(rnd(7, 11));
+    $('#stat').textContent = diag ? `${fps} FPS · ${ms} ms · ${rnd(7.8, 9.2).toFixed(1)} Mbit/s · direkt` : `${fps} FPS · ${ms} ms`;
+  };
+  $('#diagBtn').addEventListener('click', (e) => { diag = !diag; toggleBtn(e.currentTarget); paintStat(); });
+
+  const shot = $('.shot');
+  const fullBtn = $('#fullBtn');
+  if (!document.fullscreenEnabled) fullBtn.remove();
+  fullBtn.addEventListener('click', () => (document.fullscreenElement ? document.exitFullscreen() : shot.requestFullscreen()));
+  document.addEventListener('fullscreenchange', () => {
+    const on = document.fullscreenElement === shot;
+    fullBtn.innerHTML = `<i data-lucide="${on ? 'minimize' : 'maximize'}" class="i"></i>`;
+    fullBtn.ariaLabel = on ? 'Vollbild beenden' : 'Vollbild';
+    icons();
+  });
+
+  // Trennen zeigt, was die App bei einem Abbruch macht: von selbst neu verbinden
+  const reconnect = $('#reconnect');
+  $('#leaveBtn').addEventListener('click', () => {
+    if (stage.classList.contains('lost')) return;
+    setControl(false);
+    stage.classList.add('lost');
+    reconnect.classList.remove('ok');
+    reconnect.lastChild.textContent = 'Verbindung weg · verbinde neu …';
+    reconnect.classList.add('on');
+    setTimeout(() => {
+      stage.classList.remove('lost');
+      reconnect.classList.add('ok');
+      reconnect.lastChild.textContent = 'Wieder verbunden';
+      setTimeout(() => reconnect.classList.remove('on'), 1100);
+    }, 1800);
   });
 
   const LINES = ['Kannst du kurz nach unten scrollen?', 'Die Zahlen sehen gut aus', 'Wer übernimmt nachher?', 'Bild ist super scharf', 'Klick mal auf Veröffentlichen'];
@@ -623,7 +731,7 @@ footer a:hover { color: var(--text-1); }
   });
   $('#reacts').innerHTML = ['👍', '😂', '🔥', '👀', '❤️', '👏'].map((e) => `<button type="button">${e}</button>`).join('');
   $('#reacts').addEventListener('click', (e) => e.target.matches('button') && float(e.target.textContent, 'Du', ME.color));
-  setInterval(() => ($('#stat').textContent = `${Math.round(rnd(117, 121))} FPS · ${Math.round(rnd(7, 11))} ms`), 1300);
+  setInterval(paintStat, 1300);
   const bars = $$('#chart span');
   const growBars = () => bars.forEach((b) => (b.style.height = `${rnd(25, 100)}%`));
   setTimeout(growBars, 300);
@@ -690,15 +798,16 @@ footer a:hover { color: var(--text-1); }
   };
 
   // --- Einblenden beim Scrollen ----------------------------------------------------
-  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
-    if (!e.isIntersecting) return;
+  // Was gleichzeitig ins Bild kommt, erscheint nacheinander
+  const io = new IntersectionObserver((entries) => entries.filter((e) => e.isIntersecting).forEach((e, i) => {
+    e.target.style.transitionDelay = `${Math.min(i, 4) * 70}ms`;
     e.target.classList.add('in');
     if (e.target.contains(fpsEl)) countUp();
     if (e.target.contains(ct)) { roll(); setInterval(roll, 4200); }
     if (e.target.contains(radar)) showDevices();
     io.unobserve(e.target);
   }), { threshold: 0.2 });
-  $$('.reveal').forEach((el, i) => { el.style.transitionDelay = `${(i % 3) * 90}ms`; io.observe(el); });
+  $$('.reveal').forEach((el) => io.observe(el));
   function countUp() {
     if (reduced) return;
     const t0 = performance.now();

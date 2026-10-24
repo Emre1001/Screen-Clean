@@ -7,7 +7,7 @@
 **Gemeinsam an einem Bildschirm.**<br/>
 Bildschirm teilen und gemeinsam steuern – direkt von Gerät zu Gerät. Ohne Konto, ohne Cloud.
 
-[![Version](https://img.shields.io/badge/version-0.1.1-18181b?style=flat-square)](../../releases/latest)
+[![Version](https://img.shields.io/badge/version-0.1.2-18181b?style=flat-square)](../../releases/latest)
 [![Lizenz](https://img.shields.io/badge/lizenz-MIT-18181b?style=flat-square)](LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-18181b?style=flat-square&logo=windows&logoColor=white)](#installieren)
 [![Linux](https://img.shields.io/badge/Linux-X11-18181b?style=flat-square&logo=linux&logoColor=white)](#installieren)
