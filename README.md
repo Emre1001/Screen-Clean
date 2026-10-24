@@ -7,7 +7,7 @@
 **Gemeinsam an einem Bildschirm.**<br/>
 Bildschirm teilen und gemeinsam steuern – direkt von Gerät zu Gerät. Ohne Konto, ohne Cloud.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-18181b?style=flat-square)](../../releases/latest)
+[![Version](https://img.shields.io/badge/version-0.1.1-18181b?style=flat-square)](../../releases/latest)
 [![Lizenz](https://img.shields.io/badge/lizenz-MIT-18181b?style=flat-square)](LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-18181b?style=flat-square&logo=windows&logoColor=white)](#installieren)
 [![Linux](https://img.shields.io/badge/Linux-X11-18181b?style=flat-square&logo=linux&logoColor=white)](#installieren)
@@ -23,6 +23,9 @@ Bildschirm teilen und gemeinsam steuern – direkt von Gerät zu Gerät. Ohne Ko
 </picture>
 
 </div>
+
+> [!TIP]
+> **Neu in 0.1.1:** Deutsch, English und Türkçe · Updates direkt in der App · flüssigere Cursor · beim Steuern nur noch dein Mauszeiger plus Fadenkreuz · unter Linux das richtige Icon in der Taskleiste. Alle Änderungen stehen in den [Releases](../../releases).
 
 ## Funktionen
 
@@ -77,19 +80,21 @@ Dazu: Deutsch, English und Türkçe, Updates direkt in der App, Einrichtung in s
 <summary><b>Windows</b></summary>
 <br/>
 
-Installer aus den [Releases](../../releases/latest) laden und starten – die Einrichtung führt durch den Rest. WebView2 ist auf Windows 10 und 11 vorinstalliert.
+`Screen-Clean_…_x64-setup.exe` aus den [Releases](../../releases/latest) laden und starten – die Einrichtung führt durch den Rest. WebView2 ist auf Windows 10 und 11 vorinstalliert. Neue Versionen installiert die App danach selbst.
 </details>
 
 <details>
 <summary><b>Linux</b></summary>
 <br/>
 
-`.deb`, `.rpm` oder `.AppImage` aus den [Releases](../../releases/latest).
+`.deb` oder `.AppImage` aus den [Releases](../../releases/latest). Die **AppImage** aktualisiert sich selbst; beim `.deb` lädst du neue Versionen von Hand.
 
 > [!NOTE]
 > Viele Distributionen (z. B. Ubuntu) liefern WebKitGTK ohne WebRTC aus. Screen-Clean erkennt das und öffnet die Oberfläche dann als App-Fenster in Chrome, Chromium, Brave oder Edge – sonst im Standard-Browser. Tray, Tastenkürzel, Fernsteuerung, WLAN-Erkennung und Cursor-Overlay laufen weiter über die App.
 
 Die Fernsteuerung braucht eine X11-Sitzung. Unter Wayland erreicht sie nur XWayland-Programme – der System-Check zeigt das an.
+
+Nach einer Neuinstallation einmal über das Tray-Symbol **Beenden** und neu starten – sonst läuft im Hintergrund noch die alte Version weiter.
 </details>
 
 <details>
@@ -154,6 +159,7 @@ Der Signaling-Server vermittelt nur den Verbindungsaufbau. Bild, Ton, Chat und E
 - **Eingaben werden geprüft.** Nur der freigegebene Zuschauer darf steuern. Jede Eingabe wird im Rust-Backend gegen eine Allowlist geprüft, bevor sie das System erreicht.
 - **Die Notbremse greift immer.** Sie sperrt Eingaben direkt im Backend, auch wenn die Oberfläche hängt. Wer gerade steuert, steht als Banner auf deinem Bildschirm.
 - **Keine Server von uns.** Kein Konto, kein Tracking. Den Signaling-Server kannst du selbst betreiben.
+- **Updates sind signiert.** Die App installiert nur Pakete, deren Signatur zum eingebauten Schlüssel passt.
 - **Browser-Modus abgesichert.** Nur `127.0.0.1`, zufälliger Port, Einmal-Token in der URL, fremde Webseiten werden abgewiesen.
 
 ## Aufbau
@@ -198,7 +204,10 @@ src-tauri/src/
 ├── discovery.rs       UDP-Beacon auf Port 47821
 ├── config.rs          Einstellungen als JSON, atomar gespeichert
 ├── log.rs             Protokolldatei mit Rotation
+├── update.rs          In-App-Updates aus GitHub Releases (signiert)
 └── web.rs             lokaler Server für den Browser-Modus
+src/locales/           Deutsch, English, Türkçe
+scripts/latest-json.mjs  Update-Manifest aus den signierten Builds
 website/               Projektseite (GitHub Pages)
 ```
 </details>
@@ -263,6 +272,21 @@ npm test                      # Oberfläche
 cd src-tauri && cargo test    # Backend
 npm run website               # Website lokal (http://localhost:4173)
 ```
+
+<details>
+<summary><b>Neue Version veröffentlichen</b></summary>
+<br/>
+
+1. Version in `package.json`, `src-tauri/tauri.conf.json` und `src-tauri/Cargo.toml` erhöhen.
+2. Commit, dann Tag pushen: `git tag v0.1.2 && git push origin v0.1.2`.
+3. Der Workflow *Release* baut `.exe`, `.deb`, `.AppImage`, die Signaturen und `latest.json` (Secret `TAURI_SIGNING_PRIVATE_KEY` muss gesetzt sein).
+4. Artefakte laden und als Release veröffentlichen – kein Entwurf, sonst findet die App das Update nicht:
+
+```bash
+gh run download <run-id> --dir art
+gh release create v0.1.2 art/*/*/*.exe art/*/*/*.exe.sig art/*/*/*.deb art/*/*/*.AppImage art/*/*/*.AppImage.sig art/latest-json/latest.json
+```
+</details>
 
 Mit `npm run dev` läuft die Oberfläche auch im normalen Browser. Zwei Tabs auf `localhost:1420` und `127.0.0.1:1420` reichen, um Verbindung, Chat und Stream auszuprobieren.
 
