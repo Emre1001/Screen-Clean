@@ -1,0 +1,25 @@
+{
+  "name": "screen-clean",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test": "node --test src/lib/*.test.js",
+    "website": "cp src/styles/tokens.css src/styles/cursor.css website/ && npx vite website --port 4173"
+  },
+  "dependencies": {
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
+    "@tauri-apps/api": "^2.12.4",
+    "lucide": "^1.61.0",
+    "peerjs": "^1.5.5"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "vite": "^7.3.7"
+  }
+}

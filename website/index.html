@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Screen-Clean – Gemeinsam an einem Bildschirm</title>
+<meta name="description" content="Bildschirm teilen und gemeinsam steuern – direkt von Gerät zu Gerät. Farbige Live-Cursor, Chat, automatische Wiederverbindung. Ohne Konto, ohne Cloud. Kostenlos und Open Source für Windows und Linux." />
+<meta property="og:title" content="Screen-Clean – Gemeinsam an einem Bildschirm" />
+<meta property="og:description" content="Bildschirm teilen und gemeinsam steuern – direkt von Gerät zu Gerät. Ohne Konto, ohne Cloud." />
+<meta name="theme-color" content="#f3f3f4" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0e0e10" media="(prefers-color-scheme: dark)" />
+<link rel="icon" href="logo.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="cursor.css" />
+<script>
+  // Gewähltes Erscheinungsbild vor dem ersten Zeichnen setzen (kein Aufblitzen)
+  try { const t = localStorage.getItem('sc-theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; } catch {}
+</script>
+<style>
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text-1); font: 17px/1.55 var(--font); letter-spacing: -0.011em; -webkit-font-smoothing: antialiased; overflow-x: hidden; transition: background-color var(--med) var(--ease), color var(--med) var(--ease); }
+a { color: inherit; text-decoration: none; }
+h1, h2, h3 { margin: 0; letter-spacing: -0.035em; line-height: 1.05; font-weight: 650; }
+p { margin: 0; }
+.wrap { width: min(1080px, 100% - 40px); margin: 0 auto; }
+.i { width: 18px; height: 18px; stroke-width: 1.75; flex: none; }
+kbd { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 7px; background: var(--bg-elev); box-shadow: var(--shadow-sm), inset 0 -1px 0 var(--sep); font: 500 13px var(--font); color: var(--text-2); vertical-align: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+
+/* Buttons – identisch zur App */
+.btn { --b: var(--fill-2); --bh: var(--fill-3); position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 20px; border: 0; border-radius: 12px; background: var(--b); color: var(--text-1); font: 550 15px var(--font); cursor: pointer; overflow: hidden; isolation: isolate; white-space: nowrap; transition: background-color var(--fast) var(--ease), box-shadow var(--med) var(--ease), transform var(--med) var(--spring); }
+.btn::after { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(140px circle at var(--mx, 50%) var(--my, 50%), rgb(255 255 255 / 0.16), transparent 70%); opacity: 0; transition: opacity var(--med); }
+.btn:hover { background: var(--bh); }
+.btn:hover::after { opacity: 1; }
+.btn:active { transform: scale(0.965); transition-duration: 80ms; }
+.btn .i { transition: transform var(--med) var(--spring); }
+.btn:hover .nudge { transform: translateX(3px); }
+.btn.primary { --b: var(--inv); --bh: var(--inv-hover); color: var(--on-inv); box-shadow: 0 1px 2px rgb(0 0 0 / 0.15), var(--highlight); }
+.btn.primary:hover { box-shadow: 0 10px 26px -10px rgb(0 0 0 / 0.45), var(--highlight); }
+.btn.ghost { --b: transparent; --bh: var(--fill-2); color: var(--accent); }
+.btn.sm { height: 32px; padding: 0 13px; font-size: 13.5px; border-radius: 9px; gap: 6px; }
+.icon-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2); cursor: pointer; transition: background-color var(--fast), color var(--fast), transform var(--med) var(--spring); }
+.icon-btn:hover { background: var(--fill-2); color: var(--text-1); }
+.icon-btn:active { transform: scale(0.9); }
+
+/* Navigation */
+nav { position: sticky; top: 0; z-index: 50; background: var(--material); backdrop-filter: blur(24px) saturate(1.6); border-bottom: 1px solid var(--sep); }
+nav .wrap { display: flex; align-items: center; gap: 28px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 16px; letter-spacing: -0.02em; }
+.brand img { border-radius: 7px; }
+.nav-links { display: flex; gap: 26px; margin-left: auto; font-size: 14px; color: var(--text-2); }
+.nav-links a { transition: color var(--fast); }
+.nav-links a:hover { color: var(--text-1); }
+
+/* Hero */
+.hero { padding: 96px 0 0; text-align: center; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 99px; background: var(--bg-elev); box-shadow: var(--shadow-sm); font-size: 13px; color: var(--text-2); }
+.eyebrow b { color: var(--text-1); font-weight: 600; }
+.hero h1 { font-size: clamp(46px, 7.6vw, 92px); margin: 26px auto 20px; max-width: 13ch; font-weight: 680; letter-spacing: -0.045em; text-wrap: balance; }
+.hero .sub { font-size: clamp(18px, 2vw, 21px); color: var(--text-2); max-width: 600px; margin: 0 auto; }
+.cta { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 34px; }
+.cta-note { margin-top: 16px; font-size: 13px; color: var(--text-3); }
+
+/* Produktbild: die echte Zuschau-Ansicht */
+.shot-wrap { width: min(1160px, 100% - 32px); margin: 72px auto 0; perspective: 1600px; }
+.shot { text-align: left; border-radius: 18px; background: var(--bg-elev); box-shadow: var(--shadow-lg); overflow: hidden; transform-origin: 50% 0; }
+@supports (animation-timeline: view()) {
+  .shot { animation: tilt linear both; animation-timeline: view(); animation-range: entry 0% cover 40%; }
+  @keyframes tilt { from { transform: rotateX(14deg) scale(0.94); opacity: 0.6; } to { transform: none; opacity: 1; } }
+}
+.titlebar { height: 38px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--sep); }
+.titlebar i { width: 11px; height: 11px; border-radius: 50%; background: var(--fill-3); }
+.titlebar span { margin: 0 auto; font-size: 12.5px; font-weight: 550; color: var(--text-2); transform: translateX(-24px); }
+.stage { position: relative; height: clamp(420px, 50vw, 600px); overflow: hidden; background: #0b0c10; color: #f4f4f5; cursor: none; user-select: none; touch-action: none; }
+.desk { position: absolute; inset: 0; background: radial-gradient(1200px 600px at 20% 0%, #24263a 0%, transparent 60%), linear-gradient(160deg, #1a1c26, #0d0e13); }
+.stage.ctl { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--amber) 75%, transparent); }
+.win { position: absolute; border-radius: 12px; background: #16171f; box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.7), inset 0 0 0 1px rgb(255 255 255 / 0.07); transition: box-shadow var(--med); }
+.win .wt { height: 32px; display: flex; align-items: center; gap: 7px; padding: 0 12px; font-size: 12px; color: #8b8d98; border-bottom: 1px solid rgb(255 255 255 / 0.06); }
+.win .wt b { width: 9px; height: 9px; border-radius: 50%; background: rgb(255 255 255 / 0.12); }
+.stage.ctl .wt { cursor: grab; }
+.win.drag { box-shadow: 0 34px 70px -18px rgb(0 0 0 / 0.85), inset 0 0 0 1.5px color-mix(in srgb, var(--amber) 80%, transparent); }
+.code { padding: 14px 16px; font: 13px/1.8 var(--mono); color: #d4d4d8; white-space: pre; overflow: hidden; }
+.k { color: #b4a3f5; } .f { color: #7cc7f2; } .s { color: #8fd4a6; } .c { color: #6b6e7a; }
+.hot { transition: transform var(--med) var(--spring), filter var(--fast); }
+.hot.hit { transform: scale(0.94); filter: brightness(1.25); }
+.chart { padding: 16px; display: flex; align-items: flex-end; gap: 8px; height: 150px; }
+.chart span { flex: 1; height: 40%; border-radius: 5px 5px 2px 2px; background: #2b2e3d; transition: height 900ms var(--spring); }
+.chart span.hi { background: #5b86ff; }
+.deploy { display: inline-flex; margin: 0 16px 16px; height: 34px; align-items: center; padding: 0 14px; border-radius: 9px; background: #f4f4f5; color: #111113; font-size: 13px; font-weight: 600; }
+.glass { background: rgb(24 24 27 / 0.68); backdrop-filter: blur(24px) saturate(1.6); box-shadow: 0 12px 40px -10px rgb(0 0 0 / 0.6), inset 0 0 0 1px rgb(255 255 255 / 0.08); color: #f4f4f5; }
+.chip-top { position: absolute; top: 14px; left: 14px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px 0 8px; border-radius: 14px; z-index: 6; font-size: 13.5px; cursor: default; }
+.chip-top small { display: block; font-size: 11.5px; color: #a1a1aa; font-variant-numeric: tabular-nums; }
+.av { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; font-size: 11px; font-weight: 650; background: color-mix(in srgb, var(--c) 24%, #18181b); color: color-mix(in srgb, var(--c) 70%, #fff); flex: none; }
+.dock { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 6px; border-radius: 18px; z-index: 6; cursor: default; }
+.dock .icon-btn { width: 38px; height: 38px; border-radius: 12px; color: #d4d4d8; }
+.dock .icon-btn:hover, .dock .icon-btn.on { background: rgb(255 255 255 / 0.12); color: #fff; }
+.dock .btn { height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13.5px; --b: rgb(255 255 255 / 0.1); --bh: rgb(255 255 255 / 0.16); color: #fff; }
+.dock .btn.on { --b: var(--amber); --bh: color-mix(in srgb, var(--amber) 85%, #fff); color: #1c1405; }
+.dock .div { width: 1px; height: 22px; margin: 0 4px; background: rgb(255 255 255 / 0.12); }
+.panel { position: absolute; top: 70px; right: 14px; bottom: 80px; width: 300px; border-radius: 18px; z-index: 6; display: flex; flex-direction: column; overflow: hidden; cursor: default; transition: opacity var(--med) var(--ease), transform var(--slow) var(--spring); }
+.panel.closed { opacity: 0; transform: translateX(24px) scale(0.98); pointer-events: none; }
+.panel-h { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid rgb(255 255 255 / 0.08); font-size: 13.5px; font-weight: 600; }
+.panel-h .people { display: flex; }
+.panel-h .av { width: 24px; height: 24px; margin-left: -6px; box-shadow: 0 0 0 2px #1d1d21; font-size: 10px; }
+.msgs { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; scrollbar-width: none; }
+.msg { display: flex; gap: 10px; animation: msg-in var(--med) var(--spring) both; }
+@keyframes msg-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+.msg b { display: block; font-size: 12px; font-weight: 600; }
+.msg .tx { color: #e4e4e7; overflow-wrap: anywhere; }
+.compose { display: flex; gap: 6px; padding: 10px; }
+.compose input { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border: 0; border-radius: 18px; background: rgb(255 255 255 / 0.06); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1); color: #f4f4f5; font: 13.5px var(--font); outline: none; }
+.compose input:focus { box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-fill); }
+.compose button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; cursor: pointer; transition: transform var(--med) var(--spring); }
+.compose button:active { transform: scale(0.88); }
+.reacts { display: flex; padding: 6px 10px 0; }
+.reacts button { flex: 1; height: 30px; border: 0; border-radius: 8px; background: none; font-size: 16px; cursor: pointer; transition: transform var(--med) var(--spring), background-color var(--fast); }
+.reacts button:hover { background: rgb(255 255 255 / 0.1); transform: translateY(-2px) scale(1.15); }
+.ripple { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 1.5px solid var(--c); pointer-events: none; z-index: 7; animation: ripple 600ms var(--ease) forwards; }
+@keyframes ripple { to { transform: scale(5); opacity: 0; } }
+.banner { position: absolute; top: 14px; left: 50%; display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 12px; border-radius: 14px; font-size: 13px; font-weight: 550; z-index: 6; opacity: 0; transform: translate(-50%, -10px) scale(0.96); transition: opacity var(--med), transform var(--slow) var(--spring); pointer-events: none; white-space: nowrap; }
+.banner::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 30%, transparent); }
+.stage.ctl .banner { opacity: 1; transform: translate(-50%, 0); }
+.hint { margin-top: 18px; text-align: center; font-size: 14px; color: var(--text-3); }
+
+/* Abschnitte */
+section { padding: 140px 0 0; }
+.kicker { font-size: 14px; font-weight: 600; color: var(--accent); }
+.h2 { font-size: clamp(38px, 5.4vw, 64px); margin: 12px 0 18px; font-weight: 680; letter-spacing: -0.04em; text-wrap: balance; }
+.h2 span, .tile h3 span { color: var(--text-3); }
+.lead { font-size: 19px; color: var(--text-2); max-width: 620px; }
+.center { text-align: center; }
+.center .lead { margin: 0 auto; }
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity 900ms var(--ease), transform 900ms var(--ease); }
+.reveal.in { opacity: 1; transform: none; }
+
+.tiles-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-top: 56px; }
+.tile { grid-column: span 3; min-height: 380px; padding: 34px; border-radius: 26px; background: var(--bg-elev); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.tile.third { grid-column: span 2; min-height: 340px; }
+.tile.wide { grid-column: span 6; min-height: 0; flex-direction: row; align-items: center; gap: 40px; flex-wrap: wrap; }
+.tile h3 { font-size: 26px; letter-spacing: -0.03em; }
+.tile p { margin-top: 10px; color: var(--text-2); font-size: 16px; max-width: 420px; }
+.visual { margin-top: auto; padding-top: 30px; position: relative; }
+.cursors-vis { height: 150px; position: relative; }
+.cursors-vis .rcursor { transition: left 2.2s var(--ease), top 2.2s var(--ease); }
+.req { width: min(340px, 100%); padding: 14px; border-radius: 16px; background: var(--bg-elev); box-shadow: var(--shadow-md); display: flex; flex-direction: column; gap: 12px; animation: pop var(--slow) var(--spring) both; }
+.req-top { display: flex; align-items: center; gap: 12px; }
+.req-top b { display: block; font-size: 15px; font-weight: 600; }
+.req-top span { font-size: 13px; color: var(--text-2); }
+.req-top .av, .dev .av { background: color-mix(in srgb, var(--c) 16%, var(--bg-elev)); color: color-mix(in srgb, var(--c) 80%, var(--text-1)); }
+.req-top .av { width: 38px; height: 38px; font-size: 14px; }
+.req-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.status { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13.5px; font-weight: 600; background: color-mix(in srgb, var(--amber) 15%, transparent); color: var(--amber); animation: pop var(--slow) var(--spring) both; }
+@keyframes pop { from { opacity: 0; transform: scale(0.85); } }
+.big-num { font: 650 clamp(88px, 12vw, 132px)/0.9 var(--font); letter-spacing: -0.06em; font-variant-numeric: tabular-nums; }
+.big-num small { font-size: 0.28em; letter-spacing: -0.02em; color: var(--text-3); margin-left: 6px; }
+.link-vis { height: 110px; display: flex; align-items: center; }
+.node { width: 54px; height: 54px; border-radius: 16px; display: grid; place-items: center; background: var(--fill-2); color: var(--text-2); flex: none; }
+.wire { flex: 1; height: 2px; margin: 0 8px; position: relative; background: var(--fill-3); border-radius: 2px; overflow: hidden; transition: opacity var(--med); }
+.wire::after { content: ''; position: absolute; top: 0; left: -30%; width: 30%; height: 100%; background: var(--accent); border-radius: 2px; animation: flow 1.6s linear infinite; }
+.wire.cut { opacity: 0.25; }
+.wire.cut::after { animation-play-state: paused; opacity: 0; }
+@keyframes flow { to { left: 100%; } }
+.link-label { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); font-size: 13px; color: var(--text-2); white-space: nowrap; transition: color var(--fast); }
+.radar { position: relative; height: 150px; display: grid; place-items: center; }
+.radar i { position: absolute; width: 130px; height: 130px; border-radius: 50%; border: 1.5px solid var(--accent); opacity: 0; animation: ring 3s var(--ease) infinite; }
+.radar i:nth-child(2) { animation-delay: 1s; }
+.radar i:nth-child(3) { animation-delay: 2s; }
+@keyframes ring { from { transform: scale(0.15); opacity: 0.9; } to { transform: scale(1.2); opacity: 0; } }
+.radar .me { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: var(--inv); color: var(--on-inv); z-index: 1; }
+.dev { position: absolute; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 6px; border-radius: 10px; background: var(--bg-elev); box-shadow: var(--shadow-md); font-size: 13px; font-weight: 550; animation: pop var(--slow) var(--spring) both; }
+.dev .av { width: 24px; height: 24px; font-size: 10px; }
+.code-tiles { display: flex; align-items: center; gap: 6px; perspective: 600px; }
+.ct { display: grid; place-items: center; width: 50px; height: 62px; border-radius: 12px; background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--border); font: 600 30px var(--mono); }
+.ct.flip { animation: flip 520ms var(--spring) both; animation-delay: calc(var(--i) * 55ms); }
+@keyframes flip { from { transform: rotateX(90deg); opacity: 0; } }
+.code-tiles .sep { width: 10px; height: 2px; border-radius: 2px; background: var(--text-3); margin: 0 3px; }
+
+/* Notbremse */
+.keys { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 54px 0 0; }
+.cap { min-width: 104px; height: 96px; padding: 0 22px; border-radius: 20px; display: grid; place-items: center; font: 600 24px var(--font); background: var(--bg-elev); box-shadow: 0 6px 0 var(--bg-sunk), var(--shadow-md); transition: transform 90ms var(--ease), box-shadow 90ms var(--ease), color var(--fast); }
+.cap.down { transform: translateY(5px); box-shadow: 0 1px 0 var(--bg-sunk), var(--shadow-sm); color: var(--accent); }
+.plus { font-size: 26px; color: var(--text-3); }
+.toast { position: fixed; top: 70px; left: 50%; z-index: 60; display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 14px; border-radius: 14px; background: var(--material); backdrop-filter: blur(24px) saturate(1.6); box-shadow: var(--shadow-lg); font-size: 14px; font-weight: 500; transform: translate(-50%, -16px) scale(0.92); opacity: 0; pointer-events: none; transition: opacity var(--med), transform var(--slow) var(--spring); }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+.toast .i { color: var(--amber); }
+
+/* Technische Daten */
+.specs { margin: 56px 0 0; border-top: 1px solid var(--sep); }
+.spec { display: grid; grid-template-columns: 240px 1fr; gap: 24px; padding: 22px 0; border-bottom: 1px solid var(--sep); }
+.spec dt { font-weight: 600; }
+.spec dd { margin: 0; color: var(--text-2); }
+
+/* Download */
+.final { padding: 150px 0 120px; }
+.final-card { padding: 64px 40px; border-radius: 30px; background: var(--bg-elev); box-shadow: var(--shadow-sm); text-align: center; }
+.final-card img { margin: 0 auto 28px; border-radius: 20px; box-shadow: 0 20px 40px -18px rgb(0 0 0 / 0.5); }
+.term { max-width: 540px; margin: 40px auto 0; text-align: left; border-radius: 14px; background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--sep); }
+.term pre { margin: 0; padding: 18px 20px; font: 13.5px/1.8 var(--mono); color: var(--text-2); overflow-x: auto; }
+.term .p { color: var(--text-3); user-select: none; }
+footer { border-top: 1px solid var(--sep); padding: 28px 0 44px; font-size: 13px; color: var(--text-3); }
+footer .wrap { display: flex; gap: 22px; flex-wrap: wrap; align-items: center; }
+footer a:hover { color: var(--text-1); }
+
+@media (max-width: 860px) {
+  .nav-links { display: none; }
+  nav .wrap { gap: 12px; }
+  nav .theme { margin-left: auto; }
+  .tile, .tile.third, .tile.wide { grid-column: span 6; min-height: 0; }
+  .panel { display: none; }
+  .spec { grid-template-columns: 1fr; gap: 4px; }
+  section { padding-top: 100px; }
+  .cap { min-width: 74px; height: 70px; font-size: 18px; border-radius: 16px; }
+  .dock .hide-sm { display: none; }
+  .ct { width: 40px; height: 52px; font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="logo.svg" width="26" height="26" alt="" />Screen-Clean</a>
+    <div class="nav-links"><a href="#funktionen">Funktionen</a><a href="#sicherheit">Sicherheit</a><a href="#daten">Technische Daten</a><a data-repo href="#" target="_blank" rel="noopener">GitHub</a></div>
+    <button class="icon-btn theme" id="theme" type="button" aria-label="Erscheinungsbild wechseln" title="Erscheinungsbild"></button>
+    <a class="btn primary sm" href="#laden">Laden</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow"><b>Version 0.1</b> · Kostenlos und Open Source</span>
+    <h1>Gemeinsam an einem Bildschirm.</h1>
+    <p class="sub">Screen-Clean verbindet Computer direkt miteinander. Jeder sieht die Cursor der anderen, und wer darf, steuert mit – ohne Konto, ohne Cloud.</p>
+    <div class="cta">
+      <a class="btn primary" data-dl href="#laden"><i data-lucide="download" class="i"></i><span>Laden</span></a>
+      <a class="btn ghost" href="#demo">Ausprobieren<i data-lucide="arrow-right" class="i nudge"></i></a>
+    </div>
+    <p class="cta-note">Windows und Linux · rund 6 MB</p>
+  </div>
+
+  <div class="shot-wrap" id="demo">
+    <div class="shot">
+      <div class="titlebar"><i></i><i></i><i></i><span>Screen-Clean</span></div>
+      <div class="stage" id="stage" aria-label="Interaktive Vorschau der Zuschau-Ansicht">
+        <div class="desk"></div>
+        <div class="win" style="left:6%;top:17%;width:46%">
+          <div class="wt"><b></b>share.rs</div>
+          <div class="code"><span class="k">fn</span> <span class="f">share</span>(screen: &amp;Screen) {
+    <span class="k">let</span> peers = p2p::connect(<span class="s">"K7P-29Q"</span>);
+    peers.stream(screen, Fps(120));
+    <span class="c">// direkt, ohne Umweg</span>
+    cursors.<span class="f">show_all</span>();
+}</div>
+        </div>
+        <div class="win" style="left:44%;top:46%;width:29%">
+          <div class="wt"><b></b>Besucher · Woche</div>
+          <div class="chart" id="chart"><span></span><span></span><span></span><span></span><span class="hi"></span><span></span><span></span></div>
+          <span class="deploy hot" data-hot>Veröffentlichen</span>
+        </div>
+        <div class="chip-top glass"><span class="av" style="--c:#3e63dd">E</span><div><b>Emre</b><small id="stat">120 FPS · 9 ms</small></div></div>
+        <div class="banner glass">Du steuerst · zieh ein Fenster an der Titelleiste</div>
+        <div class="dock glass">
+          <button class="btn" id="ctl" type="button"><i data-lucide="gamepad-2" class="i"></i><span>Steuern</span></button>
+          <span class="div"></span>
+          <button class="icon-btn on" id="chatBtn" type="button" aria-label="Chat"><i data-lucide="message-circle" class="i"></i></button>
+          <button class="icon-btn hide-sm" type="button" aria-label="Personen"><i data-lucide="users" class="i"></i></button>
+          <button class="icon-btn hide-sm" type="button" aria-label="Diagnose"><i data-lucide="activity" class="i"></i></button>
+          <button class="icon-btn" type="button" aria-label="Vollbild"><i data-lucide="maximize" class="i"></i></button>
+          <span class="div"></span>
+          <button class="icon-btn" type="button" aria-label="Trennen"><i data-lucide="log-out" class="i"></i></button>
+        </div>
+        <aside class="panel glass" id="panel">
+          <div class="panel-h">Chat <span class="people" id="people"></span></div>
+          <div class="msgs" id="msgs"></div>
+          <div class="reacts" id="reacts"></div>
+          <form class="compose" id="compose"><input id="say" maxlength="120" placeholder="Nachricht" aria-label="Nachricht" /><button aria-label="Senden"><i data-lucide="arrow-right" class="i"></i></button></form>
+        </aside>
+      </div>
+    </div>
+    <p class="hint">Fahr mit der Maus über die Vorschau – das bist du. Mit „Steuern“ verschiebst du Fenster.</p>
+  </div>
+</header>
+
+<section id="funktionen">
+  <div class="wrap">
+    <div class="center reveal">
+      <p class="kicker">Funktionen</p>
+      <h2 class="h2">Alles, was Teilen braucht.<br /><span>Und nichts, was stört.</span></h2>
+    </div>
+    <div class="tiles-grid">
+      <article class="tile reveal">
+        <h3>Jeder Cursor hat einen Namen.</h3>
+        <p>Alle sehen, wohin die anderen zeigen – in ihrer Farbe, mit Namen. Beim Teilen erscheinen die Cursor sogar direkt auf deinem Desktop.</p>
+        <div class="visual cursors-vis" id="cursorsVis"></div>
+      </article>
+      <article class="tile reveal">
+        <h3>Steuern? <span>Nur wenn du willst.</span></h3>
+        <p>Jede Anfrage landet bei dir. Du gibst Maus und Tastatur ab und holst sie mit einem Klick zurück.</p>
+        <div class="visual" id="reqVis"></div>
+      </article>
+      <article class="tile third reveal">
+        <div class="big-num" id="fps"><span>120</span><small>FPS</small></div>
+        <h3 style="margin-top:22px">Direkt verbunden.</h3>
+        <p>Bild und Ton gehen ohne Umweg von Gerät zu Gerät – mit Hardware-Encoding, wo vorhanden.</p>
+      </article>
+      <article class="tile third reveal">
+        <div class="link-vis" style="position:relative">
+          <span class="node"><i data-lucide="monitor" class="i"></i></span><span class="wire" id="wire"></span><span class="node"><i data-lucide="laptop" class="i"></i></span>
+          <span class="link-label" id="linkLabel">Verbunden</span>
+        </div>
+        <h3 style="margin-top:28px">Abbruch? Geht weiter.</h3>
+        <p>Reißt die Verbindung ab, verbindet Screen-Clean von selbst neu – ohne erneute Freigabe.</p>
+      </article>
+      <article class="tile third reveal">
+        <div class="radar" id="radar"><i></i><i></i><i></i><span class="me"><i data-lucide="wifi" class="i"></i></span></div>
+        <h3 style="margin-top:12px">Findet sich im WLAN.</h3>
+        <p>Geräte im selben Netz tauchen automatisch auf. Ein Klick, und ihr seid verbunden.</p>
+      </article>
+      <article class="tile wide reveal">
+        <div style="flex:1;min-width:260px">
+          <h3>Ein Code. <span>Für immer.</span></h3>
+          <p>Jede Installation hat einen festen Code aus sechs Zeichen. Freunde speichern ihn einmal und verbinden sich danach mit einem Klick – vertraute sogar ohne Nachfrage.</p>
+        </div>
+        <div class="code-tiles" id="codeTiles" aria-label="Beispiel-Code"></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="sicherheit">
+  <div class="wrap center">
+    <div class="reveal">
+      <p class="kicker">Sicherheit</p>
+      <h2 class="h2">Eine Notbremse,<br /><span>die immer greift.</span></h2>
+      <p class="lead">Probier es: <kbd>Strg</kbd> <kbd>Shift</kbd> <kbd>X</kbd>. In der App entzieht das sofort jede Steuerung und beendet das Teilen – direkt im Backend, selbst wenn die Oberfläche hängt.</p>
+    </div>
+    <div class="keys reveal" aria-hidden="true"><div class="cap" data-key="Control">Strg</div><span class="plus">+</span><div class="cap" data-key="Shift">Shift</div><span class="plus">+</span><div class="cap" data-key="x">X</div></div>
+  </div>
+</section>
+
+<section id="daten">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Technische Daten</p>
+      <h2 class="h2">Klein. Schnell. <span>Offen.</span></h2>
+    </div>
+    <dl class="specs reveal">
+      <div class="spec"><dt>Verbindung</dt><dd>WebRTC Peer-to-Peer, Ende-zu-Ende verschlüsselt (DTLS-SRTP). Der Signaling-Server sieht nur Verbindungsdaten – oder du betreibst deinen eigenen.</dd></div>
+      <div class="spec"><dt>Bild</dt><dd>Bis 120 FPS. H.264 mit Hardware-Encoder, VP8, VP9 oder AV1. Qualität automatisch oder fest.</dd></div>
+      <div class="spec"><dt>Gemeinsam</dt><dd>Beliebig viele Zuschauer, farbige Live-Cursor, Chat mit Reaktionen, Fernsteuerung mit Freigabe.</dd></div>
+      <div class="spec"><dt>Zuverlässig</dt><dd>Automatische Wiederverbindung, Live-Diagnose für FPS, Bitrate, Ping und Verbindungsweg.</dd></div>
+      <div class="spec"><dt>Systeme</dt><dd>Windows 10 und 11. Linux mit X11 – ohne WebRTC-fähiges System-WebView öffnet sich die Oberfläche automatisch im Browser.</dd></div>
+      <div class="spec"><dt>Größe</dt><dd>Rund 6 MB. Rust-Backend mit Tauri, nutzt das WebView deines Systems.</dd></div>
+      <div class="spec"><dt>Preis</dt><dd>Kostenlos. Open Source unter MIT-Lizenz. Kein Konto, keine Werbung, kein Tracking.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="final" id="laden">
+  <div class="wrap">
+    <div class="final-card reveal">
+      <img src="logo.svg" width="88" height="88" alt="" />
+      <h2 class="h2" style="margin-top:0">Bereit, wenn du es bist.</h2>
+      <p class="lead" style="margin:0 auto">Laden, Code weitergeben, fertig.</p>
+      <div class="cta">
+        <a class="btn primary" data-os="win" href="#" target="_blank" rel="noopener"><i data-lucide="download" class="i"></i>Für Windows</a>
+        <a class="btn" data-os="linux" href="#" target="_blank" rel="noopener"><i data-lucide="download" class="i"></i>Für Linux</a>
+      </div>
+      <div class="term"><pre><span class="p">$ </span>git clone https://github.com/Emre1001/Screen-Clean.git
+<span class="p">$ </span>cd Screen-Clean &amp;&amp; npm install
+<span class="p">$ </span>npm run tauri dev</pre></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Emre · MIT-Lizenz</span>
+    <a data-repo href="#" target="_blank" rel="noopener">GitHub</a>
+    <a data-releases href="#" target="_blank" rel="noopener">Versionen</a>
+    <span style="margin-left:auto">Screen-Clean 0.1</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status"><i data-lucide="shield" class="i"></i><span>Notbremse: Steuerung entzogen, Teilen beendet</span></div>
+
+<script src="https://unpkg.com/lucide@1.61.0/dist/umd/lucide.min.js"></script>
+<script>
+(() => {
+  const REPO = 'https://github.com/Emre1001/Screen-Clean';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const icons = () => window.lucide?.createIcons({ attrs: { 'stroke-width': 1.75 } });
+
+  // --- Erscheinungsbild: System → Hell → Dunkel ------------------------------
+  const THEMES = ['system', 'light', 'dark'];
+  const THEME_ICON = { system: 'sun-moon', light: 'sun', dark: 'moon' };
+  const themeBtn = $('#theme');
+  let theme = document.documentElement.dataset.theme || 'system';
+  const paintTheme = () => {
+    themeBtn.innerHTML = `<i data-lucide="${THEME_ICON[theme]}" class="i"></i>`;
+    icons();
+  };
+  themeBtn.addEventListener('click', () => {
+    theme = THEMES[(THEMES.indexOf(theme) + 1) % 3];
+    if (theme === 'system') delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem('sc-theme', theme); } catch {}
+    paintTheme();
+  });
+  paintTheme();
+
+  // --- Links & Betriebssystem -------------------------------------------------
+  $$('[data-repo]').forEach((a) => (a.href = REPO));
+  $$('[data-releases], [data-os]').forEach((a) => (a.href = `${REPO}/releases/latest`));
+  const ua = navigator.userAgent;
+  const os = /Windows/.test(ua) ? 'win' : /Linux|X11/.test(ua) && !/Android/.test(ua) ? 'linux' : '';
+  if (os) {
+    $('[data-dl] span').textContent = os === 'win' ? 'Für Windows laden' : 'Für Linux laden';
+    $$('[data-os]').forEach((b) => b.classList.toggle('primary', b.dataset.os === os));
+  }
+
+  // Lichtpunkt auf Buttons folgt dem Zeiger (wie in der App)
+  document.addEventListener('pointermove', (e) => {
+    const b = e.target.closest?.('.btn');
+    if (!b) return;
+    const r = b.getBoundingClientRect();
+    b.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    b.style.setProperty('--my', `${e.clientY - r.top}px`);
+  }, { passive: true });
+
+  // --- Cursor-Baustein (identisch zur App) ------------------------------------
+  const onColor = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.4 ? '#141416' : '#ffffff';
+  };
+  function cursor(name, color, parent) {
+    const el = document.createElement('div');
+    el.className = 'rcursor';
+    el.style.setProperty('--c', color);
+    el.style.setProperty('--on', onColor(color));
+    el.innerHTML = '<svg viewBox="0 0 26 40" width="17" height="26"><path d="M2 2 L2 32 L9.5 25 L14.5 37 L20 34.5 L15 23 L25 23 Z"/></svg><span class="label"></span>';
+    el.lastChild.textContent = name;
+    parent.append(el);
+    return el;
+  }
+
+  // --- Produkt-Vorschau --------------------------------------------------------
+  const stage = $('#stage');
+  const msgs = $('#msgs');
+  const PEOPLE = [{ name: 'Lisa', color: '#e5484d' }, { name: 'Max', color: '#12a594' }, { name: 'Aylin', color: '#8e4ec6' }];
+  const ME = { name: 'Du', color: '#ffb224' };
+  $('#people').innerHTML = [...PEOPLE, ME].map((p) => `<span class="av" style="--c:${p.color}">${p.name[0]}</span>`).join('');
+
+  function say(p, text) {
+    const m = document.createElement('div');
+    m.className = 'msg';
+    m.innerHTML = `<span class="av" style="--c:${p.color}">${p.name[0]}</span><div><b style="color:color-mix(in srgb, ${p.color} 70%, #fff)"></b><span class="tx"></span></div>`;
+    m.querySelector('b').textContent = p.name;
+    m.querySelector('.tx').textContent = text;
+    msgs.append(m);
+    while (msgs.children.length > 20) msgs.firstChild.remove();
+    msgs.scrollTo({ top: msgs.scrollHeight, behavior: 'smooth' });
+  }
+  function ripple(x, y, color) {
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.cssText = `left:${x}px;top:${y}px;--c:${color}`;
+    stage.append(r);
+    setTimeout(() => r.remove(), 620);
+  }
+  function float(emoji, name, color, x) {
+    const f = document.createElement('div');
+    f.className = 'floater';
+    f.style.left = `${x ?? rnd(10, 60)}%`;
+    f.style.setProperty('--c', color);
+    f.style.setProperty('--on', onColor(color));
+    f.innerHTML = '<span class="emoji"></span><span class="who"></span>';
+    f.firstChild.textContent = emoji;
+    f.lastChild.textContent = name;
+    stage.append(f);
+    setTimeout(() => f.remove(), 2700);
+  }
+
+  // Andere Teilnehmer wandern zu klickbaren Stellen – gedämpfte Feder statt Linie
+  const pointIn = (el) => {
+    const r = el.getBoundingClientRect();
+    const s = stage.getBoundingClientRect();
+    return [r.left - s.left + r.width * rnd(0.3, 0.7), r.top - s.top + r.height * rnd(0.3, 0.7)];
+  };
+  const bots = PEOPLE.map((p) => ({ ...p, el: cursor(p.name, p.color, stage), x: rnd(150, 500), y: rnd(120, 360), tx: 0, ty: 0, vx: 0, vy: 0, wait: rnd(0, 1500), target: null }));
+  bots.forEach((b) => (b.el.style.transition = 'none'));
+  function retarget(b) {
+    if (Math.random() < 0.65) {
+      b.target = pick($$('[data-hot], .code, .chart', stage));
+      [b.tx, b.ty] = pointIn(b.target);
+    } else {
+      b.target = null;
+      b.tx = rnd(60, stage.clientWidth - 360);
+      b.ty = rnd(90, stage.clientHeight - 110);
+    }
+  }
+  bots.forEach(retarget);
+  let last = performance.now();
+  function tick(now) {
+    const dt = Math.min(40, now - last) / 16.7;
+    last = now;
+    for (const b of bots) {
+      if (b.wait > 0) { b.wait -= dt * 16.7; continue; }
+      const dx = b.tx - b.x;
+      const dy = b.ty - b.y;
+      b.vx = (b.vx + dx * 0.012 * dt) * 0.86;
+      b.vy = (b.vy + dy * 0.012 * dt) * 0.86;
+      b.x += b.vx * dt;
+      b.y += b.vy * dt;
+      b.el.style.left = `${b.x}px`;
+      b.el.style.top = `${b.y}px`;
+      if (Math.hypot(dx, dy) < 3 && Math.hypot(b.vx, b.vy) < 0.3) {
+        if (b.target?.matches('[data-hot]') && !stage.classList.contains('ctl')) {
+          ripple(b.x, b.y, b.color);
+          b.target.classList.add('hit');
+          const t = b.target;
+          setTimeout(() => t.classList.remove('hit'), 160);
+          if (Math.random() < 0.3) float(pick(['👍', '🔥', '👀', '👏']), b.name, b.color, (b.x / stage.clientWidth) * 100);
+        }
+        b.wait = rnd(500, 2400);
+        retarget(b);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  bots.forEach((b) => { b.el.style.left = `${b.x}px`; b.el.style.top = `${b.y}px`; });
+  if (!reduced) requestAnimationFrame(tick);
+
+  // Dein eigener Cursor
+  const me = cursor('Du', ME.color, stage);
+  me.style.transition = 'none';
+  me.style.opacity = 0;
+  let drag = null;
+  const pos = (e) => {
+    const s = stage.getBoundingClientRect();
+    return [e.clientX - s.left, e.clientY - s.top];
+  };
+  stage.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch') return;
+    const [x, y] = pos(e);
+    const overUi = e.target.closest('.glass');
+    me.style.opacity = overUi ? 0 : 1;
+    stage.style.cursor = overUi ? 'default' : 'none';
+    me.style.left = `${x}px`;
+    me.style.top = `${y}px`;
+    if (drag) {
+      drag.win.style.left = `${x - drag.ox}px`;
+      drag.win.style.top = `${y - drag.oy}px`;
+    }
+  });
+  stage.addEventListener('pointerleave', () => (me.style.opacity = 0));
+  stage.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.glass')) return;
+    const [x, y] = pos(e);
+    ripple(x, y, ME.color);
+    const hot = e.target.closest('[data-hot]');
+    if (hot) {
+      hot.classList.add('hit');
+      setTimeout(() => hot.classList.remove('hit'), 160);
+      setTimeout(() => say(PEOPLE[1], 'Ist online 🎉'), 600);
+    }
+    const bar = e.target.closest('.wt');
+    if (bar && stage.classList.contains('ctl')) {
+      const win = bar.parentElement;
+      drag = { win, ox: x - win.offsetLeft, oy: y - win.offsetTop };
+      win.classList.add('drag');
+      stage.setPointerCapture(e.pointerId);
+    }
+  });
+  stage.addEventListener('pointerup', () => {
+    drag?.win.classList.remove('drag');
+    drag = null;
+  });
+
+  const ctl = $('#ctl');
+  function setControl(on) {
+    stage.classList.toggle('ctl', on);
+    ctl.classList.toggle('on', on);
+    ctl.querySelector('span').textContent = on ? 'Abgeben' : 'Steuern';
+  }
+  ctl.addEventListener('click', () => {
+    const on = !stage.classList.contains('ctl');
+    setControl(on);
+    if (on) setTimeout(() => say(PEOPLE[0], 'Du hast jetzt die Maus 👀'), 700);
+  });
+  $('#chatBtn').addEventListener('click', (e) => {
+    $('#panel').classList.toggle('closed');
+    e.currentTarget.classList.toggle('on');
+  });
+
+  const LINES = ['Kannst du kurz nach unten scrollen?', 'Die Zahlen sehen gut aus', 'Wer übernimmt nachher?', 'Bild ist super scharf', 'Klick mal auf Veröffentlichen'];
+  const REPLIES = ['Gute Idee', 'Sehe ich auch so', 'Mach ich', 'Moment …', 'Top 👍'];
+  say(PEOPLE[0], 'Hi! Seht ihr meinen Cursor?');
+  setTimeout(() => say(PEOPLE[1], 'Ja, in Rot 😄'), 1800);
+  setInterval(() => document.visibilityState === 'visible' && say(pick(PEOPLE), pick(LINES)), 7000);
+  $('#compose').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const t = $('#say').value.trim();
+    if (!t) return;
+    say(ME, t);
+    $('#say').value = '';
+    setTimeout(() => say(pick(PEOPLE), pick(REPLIES)), rnd(700, 1500));
+  });
+  $('#reacts').innerHTML = ['👍', '😂', '🔥', '👀', '❤️', '👏'].map((e) => `<button type="button">${e}</button>`).join('');
+  $('#reacts').addEventListener('click', (e) => e.target.matches('button') && float(e.target.textContent, 'Du', ME.color));
+  setInterval(() => ($('#stat').textContent = `${Math.round(rnd(117, 121))} FPS · ${Math.round(rnd(7, 11))} ms`), 1300);
+  const bars = $$('#chart span');
+  const growBars = () => bars.forEach((b) => (b.style.height = `${rnd(25, 100)}%`));
+  setTimeout(growBars, 300);
+  setInterval(growBars, 2600);
+
+  // --- Funktions-Kacheln --------------------------------------------------------
+  const cv = $('#cursorsVis');
+  const vis = PEOPLE.map((p) => cursor(p.name, p.color, cv));
+  const moveVis = () => vis.forEach((el) => { el.style.left = `${rnd(2, 70)}%`; el.style.top = `${rnd(5, 65)}%`; });
+  moveVis();
+  setInterval(moveVis, 2600);
+
+  const reqVis = $('#reqVis');
+  function paintReq() {
+    reqVis.innerHTML = '<div class="req"><div class="req-top"><span class="av" style="--c:#e5484d">L</span><div><b>Lisa</b><span>möchte Maus und Tastatur übernehmen</span></div></div><div class="req-actions"><button class="btn sm" type="button">Ablehnen</button><button class="btn sm primary" type="button">Annehmen</button></div></div>';
+    $$('button', reqVis).forEach((b, i) => b.addEventListener('click', () => {
+      reqVis.innerHTML = i
+        ? '<span class="status"><i data-lucide="gamepad-2" class="i"></i>Lisa steuert</span> <button class="btn sm" type="button" style="margin-left:6px">Zurücknehmen</button>'
+        : '<span class="status" style="background:var(--fill-2);color:var(--text-2)">Abgelehnt</span>';
+      icons();
+      reqVis.querySelector('.btn')?.addEventListener('click', paintReq);
+      if (!i) setTimeout(paintReq, 1600);
+    }));
+  }
+  paintReq();
+
+  const fpsEl = $('#fps span');
+  const wire = $('#wire');
+  const linkLabel = $('#linkLabel');
+  setInterval(() => {
+    wire.classList.add('cut');
+    linkLabel.textContent = 'Verbindung weg …';
+    linkLabel.style.color = 'var(--amber)';
+    setTimeout(() => {
+      wire.classList.remove('cut');
+      linkLabel.textContent = 'Wieder verbunden';
+      linkLabel.style.color = 'var(--green)';
+      setTimeout(() => { linkLabel.textContent = 'Verbunden'; linkLabel.style.color = ''; }, 1500);
+    }, 1400);
+  }, 5200);
+
+  const radar = $('#radar');
+  const showDevices = () => [['Max', '#12a594', '6%', '16%'], ['Aylin', '#8e4ec6', '60%', '66%']].forEach(([n, c, l, t], i) => setTimeout(() => {
+    const d = document.createElement('span');
+    d.className = 'dev';
+    d.style.cssText = `left:${l};top:${t}`;
+    d.innerHTML = `<span class="av" style="--c:${c}">${n[0]}</span>${n}`;
+    radar.append(d);
+  }, 900 + i * 1400));
+
+  const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const ct = $('#codeTiles');
+  const tiles = [];
+  for (let i = 0; i < 6; i++) {
+    if (i === 3) ct.append(Object.assign(document.createElement('span'), { className: 'sep' }));
+    const t = Object.assign(document.createElement('span'), { className: 'ct', textContent: 'K7P29Q'[i] });
+    t.style.setProperty('--i', i);
+    ct.append(t);
+    tiles.push(t);
+  }
+  const roll = () => {
+    const code = Array.from({ length: 6 }, () => pick(ABC)).join('');
+    tiles.forEach((t, i) => { t.classList.remove('flip'); void t.offsetWidth; t.textContent = code[i]; t.classList.add('flip'); });
+  };
+
+  // --- Einblenden beim Scrollen ----------------------------------------------------
+  const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+    if (!e.isIntersecting) return;
+    e.target.classList.add('in');
+    if (e.target.contains(fpsEl)) countUp();
+    if (e.target.contains(ct)) { roll(); setInterval(roll, 4200); }
+    if (e.target.contains(radar)) showDevices();
+    io.unobserve(e.target);
+  }), { threshold: 0.2 });
+  $$('.reveal').forEach((el, i) => { el.style.transitionDelay = `${(i % 3) * 90}ms`; io.observe(el); });
+  function countUp() {
+    if (reduced) return;
+    const t0 = performance.now();
+    const step = (t) => {
+      const p = Math.min(1, (t - t0) / 1400);
+      fpsEl.textContent = Math.round(120 * (1 - (1 - p) ** 3));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // --- Notbremse zum Ausprobieren ------------------------------------------------
+  const caps = Object.fromEntries($$('.cap').map((c) => [c.dataset.key, c]));
+  const toast = $('#toast');
+  addEventListener('keydown', (e) => {
+    if (e.target.matches?.('input')) return;
+    caps[e.key.length === 1 ? e.key.toLowerCase() : e.key]?.classList.add('down');
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'x') {
+      e.preventDefault();
+      setControl(false);
+      toast.classList.add('on');
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => toast.classList.remove('on'), 2400);
+    }
+  });
+  addEventListener('keyup', (e) => {
+    caps[e.key.length === 1 ? e.key.toLowerCase() : e.key]?.classList.remove('down');
+    if (e.key === 'Control' || e.key === 'Shift') $$('.cap').forEach((c) => c.classList.remove('down'));
+  });
+  icons();
+})();
+</script>
+</body>
+</html>

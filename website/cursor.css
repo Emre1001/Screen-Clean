@@ -1,0 +1,85 @@
+/* Remote-Cursor + Reaktionen – identisch in App, Host-Overlay und Website. */
+.rcursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 5;
+  transition: left 70ms linear, top 70ms linear;
+  will-change: left, top;
+  animation: cursor-in 320ms var(--spring, ease-out) both;
+}
+@keyframes cursor-in {
+  from { opacity: 0; transform: scale(0.6); }
+}
+.rcursor svg {
+  display: block;
+  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.35)) drop-shadow(0 4px 8px rgb(0 0 0 / 0.18));
+}
+.rcursor path {
+  fill: var(--c);
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+.rcursor .label {
+  position: absolute;
+  left: 15px;
+  top: 20px;
+  white-space: nowrap;
+  padding: 3px 8px 3px 8px;
+  border-radius: 7px;
+  background: var(--c);
+  color: var(--on, #fff);
+  font: 600 11.5px/1.35 'Geist Variable', -apple-system, 'Segoe UI', sans-serif;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2), 0 6px 16px -6px rgb(0 0 0 / 0.35);
+}
+.rcursor.ctl .label::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 1px;
+  animation: ctl-pulse 1.6s ease-in-out infinite;
+}
+@keyframes ctl-pulse {
+  50% { opacity: 0.35; }
+}
+
+.floater {
+  position: absolute;
+  bottom: 10%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  animation: floater 2.6s var(--ease, ease-out) forwards;
+}
+.floater .emoji {
+  font-size: 38px;
+  line-height: 1;
+  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.25));
+}
+.floater .who {
+  font: 600 11px 'Geist Variable', -apple-system, sans-serif;
+  color: var(--on, #fff);
+  background: var(--c);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+@keyframes floater {
+  0% { transform: translateY(16px) scale(0.7); opacity: 0; }
+  14% { transform: translateY(0) scale(1); opacity: 1; }
+  78% { opacity: 1; }
+  100% { transform: translateY(-200px) scale(0.96); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rcursor { transition: none; animation: none; }
+  .floater { animation-duration: 0.01ms; }
+}

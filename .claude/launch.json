@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "vite", "runtimeExecutable": "npx", "runtimeArgs": ["vite"], "port": 1420 },
+    { "name": "website", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "4173", "-d", "website"], "port": 4173 }
+  ]
+}

@@ -1,0 +1,40 @@
+[package]
+name = "screen-clean"
+version = "0.1.0"
+description = "P2P Bildschirmfreigabe & Fernsteuerung"
+authors = ["Emre"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "screen_clean_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-window-state = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+enigo = "0.6"
+socket2 = { version = "0.6", features = ["all"] }
+if-addrs = "0.13"
+hostname = "0.4"
+dirs = "6"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = { version = "2.0", features = ["v2_40"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
+panic = "abort"

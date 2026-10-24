@@ -1,0 +1,117 @@
+/* Design-Tokens – gemeinsam für App, Overlay und Website.
+   Hell/Dunkel folgt dem System; [data-theme] überschreibt. */
+:root {
+  color-scheme: light;
+  --bg: #f3f3f4;
+  --bg-elev: #ffffff;
+  --bg-sunk: #ebebed;
+  --material: rgb(250 250 251 / 0.78);
+  --sidebar: rgb(238 238 240 / 0.72);
+  --fill-1: rgb(0 0 0 / 0.035);
+  --fill-2: rgb(0 0 0 / 0.06);
+  --fill-3: rgb(0 0 0 / 0.1);
+  --sep: rgb(0 0 0 / 0.08);
+  --border: rgb(0 0 0 / 0.11);
+  --text-1: #18181b;
+  --text-2: #62626c;
+  --text-3: #9a9aa3;
+  --accent: #3a6ff7;
+  --accent-hover: #2f62e6;
+  --accent-fill: rgb(58 111 247 / 0.1);
+  --on-accent: #ffffff;
+  --inv: #18181b;
+  --inv-hover: #2c2c31;
+  --on-inv: #fafafa;
+  --green: #1a9450;
+  --amber: #b97a12;
+  --red: #d6363e;
+  --red-fill: rgb(214 54 62 / 0.09);
+  --shadow-sm: 0 1px 2px rgb(16 16 20 / 0.06), 0 0 0 1px rgb(16 16 20 / 0.05);
+  --shadow-md: 0 8px 20px -8px rgb(16 16 20 / 0.14), 0 2px 4px rgb(16 16 20 / 0.04), 0 0 0 1px rgb(16 16 20 / 0.05);
+  --shadow-lg: 0 28px 70px -18px rgb(16 16 20 / 0.28), 0 0 0 1px rgb(16 16 20 / 0.06);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.6);
+
+  --font: 'Geist Variable', 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Geist Mono Variable', 'Geist Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+  --r-xs: 6px;
+  --r-sm: 9px;
+  --r: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --spring: cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  --fast: 140ms;
+  --med: 260ms;
+  --slow: 480ms;
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    /* sanfte Feder, minimaler Überschwinger */
+    --spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 15.5%, 0.938 20.7%, 1.017 25%, 1.061 30.1%, 1.072 33.5%, 1.067 37.6%, 1.042 44.1%, 1.008 54.9%, 0.996 66%, 1);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0e0e10;
+    --bg-elev: #18181b;
+    --bg-sunk: #121214;
+    --material: rgb(30 30 33 / 0.74);
+    --sidebar: rgb(22 22 25 / 0.74);
+    --fill-1: rgb(255 255 255 / 0.04);
+    --fill-2: rgb(255 255 255 / 0.07);
+    --fill-3: rgb(255 255 255 / 0.11);
+    --sep: rgb(255 255 255 / 0.07);
+    --border: rgb(255 255 255 / 0.1);
+    --text-1: #f4f4f5;
+    --text-2: #a1a1aa;
+    --text-3: #6b6b75;
+    --accent: #5b86ff;
+    --accent-hover: #7096ff;
+    --accent-fill: rgb(91 134 255 / 0.15);
+    --inv: #f4f4f5;
+    --inv-hover: #ffffff;
+    --on-inv: #111113;
+    --green: #3ccf7f;
+    --amber: #f0b443;
+    --red: #ff6166;
+    --red-fill: rgb(255 97 102 / 0.12);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06);
+    --shadow-md: 0 10px 28px -10px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.07);
+    --shadow-lg: 0 30px 80px -20px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.08);
+    --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0e0e10;
+  --bg-elev: #18181b;
+  --bg-sunk: #121214;
+  --material: rgb(30 30 33 / 0.74);
+  --sidebar: rgb(22 22 25 / 0.74);
+  --fill-1: rgb(255 255 255 / 0.04);
+  --fill-2: rgb(255 255 255 / 0.07);
+  --fill-3: rgb(255 255 255 / 0.11);
+  --sep: rgb(255 255 255 / 0.07);
+  --border: rgb(255 255 255 / 0.1);
+  --text-1: #f4f4f5;
+  --text-2: #a1a1aa;
+  --text-3: #6b6b75;
+  --accent: #5b86ff;
+  --accent-hover: #7096ff;
+  --accent-fill: rgb(91 134 255 / 0.15);
+  --inv: #f4f4f5;
+  --inv-hover: #ffffff;
+  --on-inv: #111113;
+  --green: #3ccf7f;
+  --amber: #f0b443;
+  --red: #ff6166;
+  --red-fill: rgb(255 97 102 / 0.12);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-md: 0 10px 28px -10px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.07);
+  --shadow-lg: 0 30px 80px -20px rgb(0 0 0 / 0.75), 0 0 0 1px rgb(255 255 255 / 0.08);
+  --highlight: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
