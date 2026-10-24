@@ -6,7 +6,7 @@ import { fmtRate } from '../lib/stats.js';
 import { avatar, h, icon, mount, sound, t, toast } from '../lib/ui.js';
 import { viewer } from '../lib/viewer.js';
 import { chatPanel } from './chat.js';
-import { cursorLayer, seg } from './controls.js';
+import { cursorLabel, cursorLayer, seg } from './controls.js';
 
 const MODIFIERS = new Set(['Control', 'Shift', 'Alt', 'Meta', 'AltGraph', 'OS']);
 const COMBOS = [
@@ -146,7 +146,7 @@ export function sessionView() {
     if (show) {
       for (const [id, c] of viewer.cursors) {
         const p = byId.get(id);
-        if (p && c.x != null) list.push({ id, x: c.x, y: c.y, name: p.name, color: p.color });
+        if (p && c.x != null) list.push({ id, x: c.x, y: c.y, name: cursorLabel(p.name, viewer.cursorNames), color: p.color });
       }
     }
     others.sync(list);

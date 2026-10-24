@@ -164,6 +164,12 @@ export function cursorLayer(layer) {
   };
 }
 
+/** Cursor-Label nach Host-Einstellung: ganzer Name, nur Anfangsbuchstabe oder nichts. */
+export function cursorLabel(name, mode) {
+  if (mode === 'off') return '';
+  return mode === 'initial' ? (Array.from(name.trim())[0] || '').toUpperCase() : name;
+}
+
 /** Farbiger Cursor mit Namens-Label – identisch in Stage, Overlay und Website. */
 export function cursorEl(name, color, ctl = false) {
   return h(`div.rcursor${ctl ? '.ctl' : ''}`, { style: { '--c': color, '--on': onColor(color) } }, cursorSvg(), h('span.label', name));

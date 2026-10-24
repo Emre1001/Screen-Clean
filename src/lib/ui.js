@@ -2,7 +2,7 @@
 import {
   createElement, Activity, ArrowRight, ArrowLeft, Check, ChevronLeft, ChevronRight, CircleCheck, Copy, Cpu, Crown,
   Eye, Gamepad2, Globe, Hand, Info, Keyboard, Laptop, LogIn, LogOut, Maximize, Minimize, MessageCircle, Monitor,
-  MonitorUp, MousePointer2, Pause, Play, Plus, RefreshCw, ScreenShare, ScreenShareOff, ScrollText, Send, Settings,
+  MonitorUp, MousePointer2, MousePointer2Off, Pause, Play, Plus, RefreshCw, ScreenShare, ScreenShareOff, ScrollText, Send, Settings,
   Shield, ShieldCheck, SlidersHorizontal, Sparkles, Star, Trash2, TriangleAlert, Users, Volume2, VolumeX, Wifi, X,
   Zap, History, FileText, Sun, Moon, SunMoon, Radio, ChevronDown,
 } from 'lucide';
@@ -15,7 +15,7 @@ export const t = (key, params) => window.I18n.t(key, params);
 const ICONS = {
   Activity, ArrowRight, ArrowLeft, Check, ChevronLeft, ChevronRight, CircleCheck, Copy, Cpu, Crown, Eye, Gamepad2,
   Globe, Hand, Info, Keyboard, Laptop, LogIn, LogOut, Maximize, Minimize, MessageCircle, Monitor, MonitorUp,
-  MousePointer2, Pause, Play, Plus, RefreshCw, ScreenShare, ScreenShareOff, ScrollText, Send, Settings, Shield,
+  MousePointer2, MousePointer2Off, Pause, Play, Plus, RefreshCw, ScreenShare, ScreenShareOff, ScrollText, Send, Settings, Shield,
   ShieldCheck, SlidersHorizontal, Sparkles, Star, Trash2, TriangleAlert, Users, Volume2, VolumeX, Wifi, X, Zap,
   History, FileText, Sun, Moon, SunMoon, Radio, ChevronDown,
 };

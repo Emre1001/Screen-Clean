@@ -19,6 +19,7 @@ class Viewer {
   color = null;
   list = [];
   cursors = new Map();
+  cursorNames = 'full';
   chat = [];
   controlling = false;
   ctlPending = false;
@@ -106,6 +107,7 @@ class Viewer {
         break;
       case 'cursors':
         if (!Array.isArray(m.l)) break;
+        this.cursorNames = ['initial', 'off'].includes(m.n) ? m.n : 'full';
         this.cursors = new Map(m.l.filter((c) => Array.isArray(c) && c[0] !== net.id).map(([id, x, y]) => [id, { x, y }]));
         emit('viewer:cursors');
         break;

@@ -10,6 +10,8 @@ export const DEFAULT_SETTINGS = {
   theme: 'system', // system | light | dark
   audio: true,
   remoteCursors: true,
+  shareCursors: true, // Host: Zuschauer-Cursor überhaupt zeigen
+  cursorNames: 'full', // full | initial | off – was Zuschauer an fremden Cursorn sehen
   showLog: false,
   diagnostics: false,
   sounds: true,

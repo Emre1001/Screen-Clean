@@ -26,6 +26,7 @@ class Host {
   overlayInCapture = false;
   chat = [];
   cursorQueued = false;
+  hiddenCursors = new Set(); // clientId/peerId, deren Cursor der Host ausgeblendet hat
   ticks = 0;
 
   constructor() {
@@ -372,13 +373,25 @@ class Host {
     queueMicrotask(() => {
       this.cursorQueued = false;
       const l = this.visibleCursors().map((v) => [v.id, +v.cursor.x.toFixed(4), +v.cursor.y.toFixed(4)]);
-      this.broadcast({ t: 'cursors', l });
+      this.broadcast({ t: 'cursors', l, n: cfg.settings.cursorNames });
       this.updateOverlay();
     });
   }
 
   visibleCursors() {
-    return [...this.viewers.values()].filter((v) => v.cursor && v.id !== this.controller);
+    if (!cfg.settings.shareCursors) return [];
+    return [...this.viewers.values()].filter((v) => v.cursor && v.id !== this.controller && !this.cursorHidden(v));
+  }
+
+  cursorHidden(v) {
+    return this.hiddenCursors.has(v.clientId || v.id);
+  }
+
+  toggleCursor(v) {
+    const key = v.clientId || v.id;
+    if (!this.hiddenCursors.delete(key)) this.hiddenCursors.add(key);
+    this.queueCursors();
+    emit('host:changed');
   }
 
   updateOverlay() {
@@ -387,7 +400,7 @@ class Host {
       ? this.visibleCursors().map((v) => ({ id: v.id, name: v.name, color: v.color, x: v.cursor.x, y: v.cursor.y }))
       : [];
     const ctl = this.viewers.get(this.controller);
-    emitTo('overlay', 'overlay:state', { cursors, controller: ctl ? { name: ctl.name, color: ctl.color } : null, paused: this.paused });
+    emitTo('overlay', 'overlay:state', { cursors, names: cfg.settings.cursorNames, controller: ctl ? { name: ctl.name, color: ctl.color } : null, paused: this.paused });
   }
 
   pushChat(msg) {
@@ -442,6 +455,7 @@ class Host {
     if (key === 'codec' && this.stream) for (const v of this.viewers.values()) this.callViewer(v);
     if (key === 'controlPolicy' && cfg.settings.controlPolicy === 'deny') this.setController(null);
     if (key === 'remoteCursors') this.updateOverlay();
+    if (key === 'cursorNames' || key === 'shareCursors') this.queueCursors();
     if (key === 'monitor' && this.stream) this.detectMonitor();
   }
 

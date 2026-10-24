@@ -114,7 +114,9 @@ const PAGES = {
     return [
       group(t('control.joining'),
         setRow(t('control.join'), t('control.join.hint'), seg([['ask', t('policy.ask')], ['friends', t('policy.friends')], ['auto', t('policy.all')]], cfg.settings.joinPolicy, set('joinPolicy'))),
-        setRow(t('policy.control'), t('control.control.hint'), seg([['ask', t('policy.ask')], ['auto', t('policy.allow')], ['deny', t('policy.off')]], cfg.settings.controlPolicy, set('controlPolicy')))),
+        setRow(t('policy.control'), t('control.control.hint'), seg([['ask', t('policy.ask')], ['auto', t('policy.allow')], ['deny', t('policy.off')]], cfg.settings.controlPolicy, set('controlPolicy'))),
+        setRow(t('control.shareCursors'), t('control.shareCursors.hint'), tog('shareCursors')),
+        setRow(t('control.cursorNames'), t('control.cursorNames.hint'), seg([['full', t('cursorNames.full')], ['initial', t('cursorNames.initial')], ['off', t('cursorNames.off')]], cfg.settings.cursorNames, set('cursorNames')))),
       group(t('control.watching'),
         setRow(t('control.autoRequest'), t('control.autoRequest.hint'), tog('autoRequestControl'))),
       group(t('control.monitors'),

@@ -6,7 +6,7 @@ import './locales/en.js';
 import './locales/de.js';
 import './locales/tr.js';
 import { listen } from '@tauri-apps/api/event';
-import { cursorLayer } from './views/controls.js';
+import { cursorLabel, cursorLayer } from './views/controls.js';
 import './styles/overlay.css';
 
 const layer = document.getElementById('layer');
@@ -16,7 +16,7 @@ const t = (k, p) => window.I18n.t(k, p);
 window.I18n.init();
 
 listen('overlay:state', ({ payload }) => {
-  cursors.sync(payload.cursors);
+  cursors.sync(payload.cursors.map((c) => ({ ...c, name: cursorLabel(c.name, payload.names) })));
 
   const ctl = payload.controller;
   const key = payload.paused ? 'paused' : ctl ? `ctl:${ctl.name}` : '';

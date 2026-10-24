@@ -159,6 +159,10 @@ export function shareView() {
           h('span.row-sub.num', [v.rtt != null && `${v.rtt} ms`, s?.fps && `${s.fps} FPS`, s?.route && t(`route.${s.route}`)].filter(Boolean).join(' · ') || fmtCode(v.code))),
         h('div.row-trail',
           h(`button.icon-btn${ctl ? '.on' : ''}`, { 'data-tip': ctl ? t('people.revoke') : t('people.give'), disabled: !canCtl, onclick: () => host.setController(ctl ? null : v.id) }, icon('Gamepad2', 17)),
+          h('button.icon-btn', {
+            'data-tip': !cfg.settings.shareCursors ? t('people.cursorsOff') : host.cursorHidden(v) ? t('people.showCursor') : t('people.hideCursor'),
+            'aria-pressed': String(host.cursorHidden(v)), disabled: !cfg.settings.shareCursors, onclick: () => host.toggleCursor(v),
+          }, icon(host.cursorHidden(v) || !cfg.settings.shareCursors ? 'MousePointer2Off' : 'MousePointer2', 17)),
           h(`button.icon-btn${findFriend(v.code) ? '.on' : ''}`, { 'data-tip': findFriend(v.code) ? t('people.saved') : t('people.saveFriend'), onclick: () => { upsertFriend(v.code, v.name); paintPeople(); } }, icon('Star', 17)),
           h('button.icon-btn.danger', { 'data-tip': t('people.remove'), onclick: () => host.kick(v.id) }, icon('X', 17))))));
     }
@@ -194,7 +198,10 @@ export function shareView() {
     paintHead();
   });
   onEvent('friends', paintPeople);
-  onEvent('settings', ({ key }) => segs[key]?.set(cfg.settings[key]));
+  onEvent('settings', ({ key }) => {
+    segs[key]?.set(cfg.settings[key]);
+    if (key === 'shareCursors') paintPeople();
+  });
   paint();
   return root;
 }
